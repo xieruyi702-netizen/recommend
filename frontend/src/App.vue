@@ -115,6 +115,10 @@
 
 <script>
 export default {
+  created() {
+    const saved = localStorage.getItem('user')
+    if (saved && localStorage.getItem('token')) { try { this.user = JSON.parse(saved) } catch (e) {} }
+  },
   data() {
     return {
       account: 'demo', password: '123456', loginMsg: '', loading: false,
@@ -144,6 +148,18 @@ export default {
     channelName() { return this.channel === 'rec' || this.channel === 'fav' ? '' : this.channel }
   },
   methods: {
+    authHeaders() {
+      return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (this.user?.token || localStorage.getItem('token') || '') }
+    },
+    handle401(res) {
+      if (res.status === 401) {
+        this.user = null
+        localStorage.removeItem('user'); localStorage.removeItem('token')
+        this.toast('登录已过期，请重新登录', 'warn')
+        return true
+      }
+      return false
+    },
     toast(text, type = 'ok') {
       const id = ++this.toastId
       const icon = { ok: '✓', warn: '!', info: '⚡' }[type] || '✓'
@@ -167,7 +183,7 @@ export default {
         body: JSON.stringify({ account: this.account, password: this.password })
       }).then(r => r.json())
       this.loading = false
-      if (res.ok) { this.toast('欢迎回来，' + res.username); this.user = res; this.refresh(); this.loadFavs() }
+      if (res.ok) { this.toast('欢迎回来，' + res.username); this.user = res; localStorage.setItem('user', JSON.stringify(res)); localStorage.setItem('token', res.token); this.refresh(); this.loadFavs() }
       else this.loginMsg = res.msg
     },
     async sendCode(purpose) {
@@ -195,7 +211,7 @@ export default {
         body: JSON.stringify({ email: this.email, code: this.code })
       }).then(r => r.json())
       this.loading = false
-      if (res.ok) { this.toast('欢迎，' + res.username); this.user = res; this.refresh(); this.loadFavs() }
+      if (res.ok) { this.toast('欢迎，' + res.username); this.user = res; localStorage.setItem('user', JSON.stringify(res)); localStorage.setItem('token', res.token); this.refresh(); this.loadFavs() }
       else this.loginMsg = res.msg
     },
     async register() {
@@ -208,7 +224,7 @@ export default {
         })
       }).then(r => r.json())
       this.loading = false
-      if (res.ok) { this.toast('注册成功'); this.user = res; this.refresh(); this.loadFavs() }
+      if (res.ok) { this.toast('注册成功'); this.user = res; localStorage.setItem('user', JSON.stringify(res)); localStorage.setItem('token', res.token); this.refresh(); this.loadFavs() }
       else this.loginMsg = res.msg
     },
     async crawlNews() {
@@ -221,7 +237,9 @@ export default {
       } else this.toast('采集失败，请稍后再试', 'warn')
     },
     async refresh() {
-      this.feed = await fetch(`/api/feed/recommend?userId=${this.user.userId}&size=20`).then(r => r.json())
+      const res = await fetch(`/api/feed/recommend?userId=${this.user.userId}&size=20`, { headers: this.authHeaders() })
+      if (this.handle401(res)) return
+      this.feed = await res.json()
       this.toast('已为你刷新推荐', 'info')
       this.$nextTick(() => this.setupObserver())
     },
@@ -230,7 +248,9 @@ export default {
       this.$nextTick(() => this.setupObserver())
     },
     async loadFavs() {
-      this.favorites = await fetch(`/api/favorite/list?userId=${this.user.userId}`).then(r => r.json())
+      const res = await fetch(`/api/favorite/list?userId=${this.user.userId}`, { headers: this.authHeaders() })
+      if (this.handle401(res)) return
+      this.favorites = await res.json()
     },
     switchChannel(c) {
       this.channel = c
@@ -241,7 +261,7 @@ export default {
     async toggleFav(item) {
       const liked = !this.isFav(item)
       await fetch('/api/favorite/toggle', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: this.authHeaders(),
         body: JSON.stringify({ userId: this.user.userId, itemId: item.id, liked })
       })
       if (liked) this.report(item, 'like')
@@ -271,7 +291,7 @@ export default {
     async report(item, action) {
       if (!item || !this.user) return
       fetch('/api/behavior/report', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: this.authHeaders(),
         body: JSON.stringify({ userId: this.user.userId, itemId: item.id, action, timestamp: Date.now() })
       }).catch(() => {})
     }

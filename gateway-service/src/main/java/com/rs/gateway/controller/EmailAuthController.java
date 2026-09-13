@@ -1,6 +1,7 @@
 package com.rs.gateway.controller;
 
 import com.rs.api.entity.User;
+import com.rs.gateway.auth.TokenService;
 import com.rs.gateway.mapper.UserMapper;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.SimpleMailMessage;
@@ -22,14 +23,16 @@ import java.util.UUID;
 public class EmailAuthController {
 
     private final UserMapper userMapper;
+    private final TokenService tokenService;
     private final StringRedisTemplate redis;
     private final JavaMailSender mailSender;   // 无 SMTP 配置时容器内不存在该 Bean
     private final boolean smtpEnabled;
 
-    public EmailAuthController(UserMapper userMapper, StringRedisTemplate redis,
+    public EmailAuthController(UserMapper userMapper, TokenService tokenService, StringRedisTemplate redis,
                                org.springframework.beans.factory.ObjectProvider<JavaMailSender> mailSenderProvider,
                                @org.springframework.beans.factory.annotation.Value("${spring.mail.host:}") String mailHost) {
         this.userMapper = userMapper;
+        this.tokenService = tokenService;
         this.redis = redis;
         this.mailSender = mailSenderProvider.getIfAvailable();
         this.smtpEnabled = mailSender != null && !mailHost.isBlank();
@@ -142,6 +145,6 @@ public class EmailAuthController {
                 "userId", user.getId(),
                 "username", user.getUsername(),
                 "interestTags", user.getInterestTags(),
-                "token", UUID.randomUUID().toString());
+                "token", tokenService.issue(user.getId()));
     }
 }

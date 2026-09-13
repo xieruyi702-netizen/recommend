@@ -3,6 +3,7 @@ package com.rs.gateway.controller;
 import com.rs.api.ItemDTO;
 import com.rs.api.entity.Item;
 import com.rs.behavior.api.BehaviorEvent;
+import com.rs.gateway.auth.TokenService;
 import com.rs.gateway.mapper.FavoriteMapper;
 import com.rs.gateway.mapper.ItemMapper;
 import com.rs.gateway.mapper.UserMapper;
@@ -33,6 +34,8 @@ class GatewayControllersTest {
     private UserMapper userMapper;
     @Mock
     private KafkaTemplate<String, BehaviorEvent> kafkaTemplate;
+    @Mock
+    private TokenService tokenService;
 
     private Item entity(long id) {
         Item i = new Item();
@@ -92,7 +95,7 @@ class GatewayControllersTest {
     void loginShouldFailOnWrongAccount() {
         when(userMapper.findByAccountAndPassword("alice", "bad")).thenReturn(null);
 
-        Map<String, Object> out = new UserController(userMapper)
+        Map<String, Object> out = new UserController(userMapper, tokenService)
                 .login(Map.of("account", "alice", "password", "bad"));
 
         assertEquals(false, out.get("ok"));
@@ -105,8 +108,9 @@ class GatewayControllersTest {
         u.setUsername("alice");
         u.setInterestTags("科技");
         when(userMapper.findByAccountAndPassword("alice", "pw")).thenReturn(u);
+        when(tokenService.issue(7L)).thenReturn("tok-7");
 
-        Map<String, Object> out = new UserController(userMapper)
+        Map<String, Object> out = new UserController(userMapper, tokenService)
                 .login(Map.of("account", "alice", "password", "pw"));
 
         assertEquals(true, out.get("ok"));
@@ -116,7 +120,7 @@ class GatewayControllersTest {
 
     @Test
     void registerShouldRejectInvalidEmail() {
-        Map<String, Object> out = new UserController(userMapper)
+        Map<String, Object> out = new UserController(userMapper, tokenService)
                 .register(Map.of("username", "a", "email", "not-an-email", "password", "p"));
 
         assertEquals(false, out.get("ok"));

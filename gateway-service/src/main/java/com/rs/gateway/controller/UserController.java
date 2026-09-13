@@ -1,20 +1,22 @@
 package com.rs.gateway.controller;
 
 import com.rs.api.entity.User;
+import com.rs.gateway.auth.TokenService;
 import com.rs.gateway.mapper.UserMapper;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
 
     private final UserMapper userMapper;
+    private final TokenService tokenService;
 
-    public UserController(UserMapper userMapper) {
+    public UserController(UserMapper userMapper, TokenService tokenService) {
         this.userMapper = userMapper;
+        this.tokenService = tokenService;
     }
 
     /** 登录：账号可以是用户名或邮箱 */
@@ -33,7 +35,7 @@ public class UserController {
                 "userId", user.getId(),
                 "username", user.getUsername(),
                 "interestTags", user.getInterestTags(),
-                "token", UUID.randomUUID().toString());
+                "token", tokenService.issue(user.getId()));
     }
 
     /** 注册：用户名 + 邮箱 + 密码 + 兴趣标签（用于个性化召回） */
@@ -60,6 +62,7 @@ public class UserController {
             return Map.of("ok", false, "msg", "用户名或邮箱已被注册");
         }
         return Map.of("ok", true, "msg", "注册成功",
-                "userId", user.getId(), "username", username, "interestTags", interestTags);
+                "userId", user.getId(), "username", username, "interestTags", interestTags,
+                "token", tokenService.issue(user.getId()));
     }
 }
