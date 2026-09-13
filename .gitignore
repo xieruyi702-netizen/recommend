@@ -1,0 +1,23 @@
+# Build
+target/
+build/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Env & secrets
+.env
+*.log
+logs/
+
+# OS
+.DS_Store
+
+# Docker local data
+mysql-data/

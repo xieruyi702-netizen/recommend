@@ -1,0 +1,30 @@
+server:
+  port: 9105
+
+spring:
+  application:
+    name: behavior-consumer
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:mysql}:3306/recommend?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci
+    username: root
+    password: ${MYSQL_ROOT_PASSWORD:root123}
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: 6379
+  kafka:
+    bootstrap-servers: ${KAFKA_ADDR:kafka:9092}
+    consumer:
+      group-id: behavior-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.rs.api
+        spring.json.value.default.type: com.rs.api.BehaviorEvent
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.rs.api.entity
+  configuration:
+    map-underscore-to-camel-case: true

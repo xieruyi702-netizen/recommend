@@ -1,0 +1,21 @@
+server:
+  port: 9104
+
+spring:
+  application:
+    name: rerank-service
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: 6379
+
+dubbo:
+  application:
+    name: rerank-service
+  registry:
+    address: nacos://${NACOS_ADDR:nacos:8848}
+  protocol:
+    name: dubbo
+    port: 20884
+  provider:
+    timeout: 3000

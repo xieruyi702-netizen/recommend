@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.rs.recall.mapper.RecallMapper">
+
+    <sql id="itemColumns">
+        id, title, tags, author, hot_score, ctr, publish_time, url, summary
+    </sql>
+
+    <select id="selectByHot" resultType="Item">
+        SELECT <include refid="itemColumns"/>
+        FROM items
+        ORDER BY hot_score DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectInterestTags" resultType="string">
+        SELECT IFNULL(interest_tags, '') FROM users WHERE id = #{userId}
+    </select>
+
+    <select id="selectByTags" resultType="Item">
+        SELECT <include refid="itemColumns"/>
+        FROM items
+        WHERE
+        <foreach collection="tags" item="tag" separator=" OR ">
+            tags LIKE CONCAT('%', #{tag}, '%')
+        </foreach>
+        ORDER BY hot_score DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectClickedTags" resultType="string">
+        SELECT i.tags
+        FROM behaviors b JOIN items i ON b.item_id = i.id
+        WHERE b.user_id = #{userId} AND b.action = 'click'
+        GROUP BY i.tags
+        ORDER BY MAX(b.id) DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectByIds" resultType="Item">
+        SELECT <include refid="itemColumns"/>
+        FROM items
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+</mapper>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.rs.gateway.mapper.UserMapper">
+
+    <select id="countByEmail" resultType="int">
+        SELECT COUNT(*) FROM users WHERE email = #{email}
+    </select>
+
+    <select id="findByEmail" resultType="User">
+        SELECT id, username, interest_tags FROM users WHERE email = #{email}
+    </select>
+
+    <select id="findById" resultType="User">
+        SELECT id, username, interest_tags FROM users WHERE id = #{id}
+    </select>
+
+    <select id="findByAccountAndPassword" resultType="User">
+        SELECT id, username, interest_tags FROM users
+        WHERE (username = #{account} OR email = #{account}) AND password = #{password}
+    </select>
+
+    <select id="findIdByUsername" resultType="long">
+        SELECT id FROM users WHERE username = #{username}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users (username, email, password, interest_tags)
+        VALUES (#{username}, #{email}, #{password}, #{interestTags})
+    </insert>
+</mapper>

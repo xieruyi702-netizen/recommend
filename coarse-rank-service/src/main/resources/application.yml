@@ -1,0 +1,17 @@
+server:
+  port: 9102
+
+spring:
+  application:
+    name: coarse-rank-service
+
+dubbo:
+  application:
+    name: coarse-rank-service
+  registry:
+    address: nacos://${NACOS_ADDR:nacos:8848}
+  protocol:
+    name: dubbo
+    port: 20882
+  provider:
+    timeout: 3000

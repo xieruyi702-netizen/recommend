@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.rs.consumer.mapper.ItemMapper">
+
+    <update id="incrementHot">
+        UPDATE items SET hot_score = hot_score + #{delta} WHERE id = #{id}
+    </update>
+
+    <insert id="batchInsertIgnore">
+        INSERT IGNORE INTO items (title, tags, author, hot_score, ctr, publish_time, url, summary)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.title}, #{item.tags}, #{item.author}, #{item.hotScore}, #{item.ctr}, NOW(), #{item.url}, #{item.summary})
+        </foreach>
+    </insert>
+
+    <select id="selectIdByUrl" resultType="long">
+        SELECT id FROM items WHERE url = #{url}
+    </select>
+
+    <select id="count" resultType="long">
+        SELECT COUNT(*) FROM items
+    </select>
+</mapper>
