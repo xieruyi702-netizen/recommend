@@ -13,6 +13,7 @@ public class Music implements Serializable {
     private Integer duration;
     private String filePath;
     private String cover;
+    private String subtitle;
     private LocalDateTime createdAt;
 
     public Long getId() { return id; }
@@ -29,6 +30,8 @@ public class Music implements Serializable {
     public void setFilePath(String filePath) { this.filePath = filePath; }
     public String getCover() { return cover; }
     public void setCover(String cover) { this.cover = cover; }
+    public String getSubtitle() { return subtitle; }
+    public void setSubtitle(String subtitle) { this.subtitle = subtitle; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

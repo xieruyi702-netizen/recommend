@@ -48,13 +48,20 @@
       </div>
     </div>
 
+    <!-- 歌词面板 -->
+    <div v-if="playing && lyrics.length && showLyrics" class="lyrics">
+      <div v-for="(l, i) in lyrics" :key="i" class="lyric" :class="{ on: i === lyricIdx }">{{ l.text }}</div>
+    </div>
+
     <!-- 底部播放条 -->
     <div v-if="playing" class="player">
       <div class="p-info">
         <div class="p-title">{{ playing.title }}</div>
         <div class="p-artist">{{ playing.artist }}</div>
       </div>
-      <audio ref="audio" :src="playingSrc" autoplay controls @ended="playingId = null"></audio>
+      <audio ref="audio" :src="playingSrc" autoplay controls
+             @timeupdate="onTime" @ended="playingId = null"></audio>
+      <button v-if="lyrics.length" class="lyric-btn" :class="{ on: showLyrics }" @click="showLyrics = !showLyrics">词</button>
     </div>
 
     <!-- 全局 Toast -->
@@ -71,6 +78,7 @@ export default {
       url: '', extracting: false,
       musicList: [], loadingList: false,
       playingId: null, playing: null, playingSrc: '',
+      lyrics: [], lyricIdx: -1, showLyrics: true,
       toasts: [], toastId: 0
     }
   },
@@ -129,7 +137,7 @@ export default {
         } else this.toast(res.msg, 'warn')
       } catch (e) { this.toast('删除失败', 'warn') }
     },
-    togglePlay(m) {
+    async togglePlay(m) {
       if (this.playingId === m.id) {
         this.$refs.audio.pause()
         this.playingId = null
@@ -138,6 +146,42 @@ export default {
       this.playingId = m.id
       this.playing = m
       this.playingSrc = '/music/' + m.filePath
+      this.lyrics = []; this.lyricIdx = -1
+      if (m.subtitle) {
+        try {
+          const vtt = await fetch('/music/' + m.subtitle).then(r => r.text())
+          this.lyrics = this.parseVtt(vtt)
+          this.showLyrics = this.lyrics.length > 0
+        } catch (e) { this.lyrics = [] }
+      }
+    },
+    parseVtt(vtt) {
+      return vtt.split(/\n\n+/).filter(b => b && !b.startsWith('WEBVTT')).map(block => {
+        const lines = block.split('\n')
+        const times = (lines.find(l => l.includes('-->')) || '').split('-->')
+        const start = this.sec(times[0])
+        return { start, text: lines.filter(l => !l.includes('-->') && !/^\s*$/.test(l)).join(' ') }
+      }).filter(c => c.text && !isNaN(c.start))
+    },
+    sec(t) {
+      if (!t) return NaN
+      const [h, m, s] = t.trim().split(':').map(parseFloat)
+      return (h || 0) * 3600 + (m || 0) * 60 + (s || 0)
+    },
+    onTime(e) {
+      if (!this.lyrics.length) return
+      const t = e.target.currentTime
+      let idx = -1
+      for (let i = 0; i < this.lyrics.length; i++) {
+        if (this.lyrics[i].start <= t) idx = i; else break
+      }
+      if (idx !== this.lyricIdx) {
+        this.lyricIdx = idx
+        this.$nextTick(() => {
+          const on = document.querySelector('.lyric.on')
+          if (on) on.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        })
+      }
     }
   }
 }
@@ -193,6 +237,13 @@ body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 .play.on { outline: 3px solid rgba(224,69,60,.3); }
 .del { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: #fff; color: var(--dim); font-size: 14px; cursor: pointer; flex-shrink: 0; transition: all .2s; }
 .del:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ---- 歌词面板 ---- */
+.lyrics { position: fixed; left: 0; right: 0; bottom: 64px; z-index: 19; max-height: 40vh; overflow-y: auto; background: rgba(255,255,255,.97); box-shadow: 0 -4px 20px rgba(0,0,0,.06); padding: 18px 16px; text-align: center; }
+.lyric { color: var(--dim); font-size: 14px; line-height: 2; transition: all .2s; }
+.lyric.on { color: var(--accent); font-size: 16px; font-weight: 700; }
+.lyric-btn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: #fff; color: var(--dim); font-size: 13px; cursor: pointer; flex-shrink: 0; transition: all .2s; }
+.lyric-btn.on { color: #fff; background: var(--accent); border-color: var(--accent); }
 
 /* ---- 底部播放条 ---- */
 .player { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: #fff; box-shadow: 0 -4px 20px rgba(0,0,0,.1); display: flex; align-items: center; gap: 16px; padding: 10px 16px; }

@@ -127,11 +127,14 @@ services:
     container_name: rs-consumer
     volumes:
       - ./music-files:/data/music
-    environment: *java-env
+    environment:
+      <<: *java-env
+      BILI_SESSDATA: ${BILI_SESSDATA:-}
     depends_on:
       mysql: { condition: service_healthy }
       redis: { condition: service_healthy }
       kafka: { condition: service_healthy }
+      nacos: { condition: service_healthy }
 
   frontend:
     build: { context: ./frontend }

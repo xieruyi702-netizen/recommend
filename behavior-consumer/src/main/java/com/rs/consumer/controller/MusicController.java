@@ -56,6 +56,9 @@ public class MusicController {
         musicMapper.deleteById(id);
         try {
             java.nio.file.Files.deleteIfExists(extractor.resolveFile(music.getFilePath()));
+            if (music.getSubtitle() != null && !music.getSubtitle().isBlank()) {
+                java.nio.file.Files.deleteIfExists(extractor.resolveFile(music.getSubtitle()));
+            }
         } catch (Exception e) {
             return Map.of("ok", false, "msg", "记录已删除，但文件清理失败: " + e.getMessage());
         }

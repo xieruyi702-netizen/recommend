@@ -154,5 +154,6 @@ CREATE TABLE IF NOT EXISTS music (
     duration INT DEFAULT 0 COMMENT '秒',
     file_path VARCHAR(256) NOT NULL COMMENT '文件名，静态目录 /music/ 下',
     cover VARCHAR(512) DEFAULT '' COMMENT '封面图 URL',
+    subtitle VARCHAR(256) DEFAULT '' COMMENT '字幕文件名（vtt），空=无字幕',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

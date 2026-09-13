@@ -3,12 +3,12 @@
 <mapper namespace="com.rs.consumer.mapper.MusicMapper">
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO music (title, artist, bvid, duration, file_path, cover)
-        VALUES (#{title}, #{artist}, #{bvid}, #{duration}, #{filePath}, #{cover})
+        INSERT INTO music (title, artist, bvid, duration, file_path, cover, subtitle)
+        VALUES (#{title}, #{artist}, #{bvid}, #{duration}, #{filePath}, #{cover}, #{subtitle})
     </insert>
 
     <select id="selectByBvid" resultType="com.rs.consumer.entity.Music">
-        SELECT id, title, artist, bvid, duration, file_path, cover, created_at
+        SELECT id, title, artist, bvid, duration, file_path, cover, subtitle, created_at
         FROM music
         WHERE bvid = #{bvid}
     </select>
@@ -18,13 +18,13 @@
     </delete>
 
     <select id="selectById" resultType="com.rs.consumer.entity.Music">
-        SELECT id, title, artist, bvid, duration, file_path, cover, created_at
+        SELECT id, title, artist, bvid, duration, file_path, cover, subtitle, created_at
         FROM music
         WHERE id = #{id}
     </select>
 
     <select id="selectAll" resultType="com.rs.consumer.entity.Music">
-        SELECT id, title, artist, bvid, duration, file_path, cover, created_at
+        SELECT id, title, artist, bvid, duration, file_path, cover, subtitle, created_at
         FROM music
         ORDER BY id DESC
     </select>

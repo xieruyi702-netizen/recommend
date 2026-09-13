@@ -41,9 +41,12 @@ public class BiliAudioExtractor {
     private final HttpClient http = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(15)).followRedirects(HttpClient.Redirect.NORMAL).build();
     private final Path musicDir;
+    private final String sessdata;   // B 站登录凭证：配置后可抓取 CC/AI 字幕（匿名拿不到）
 
-    public BiliAudioExtractor(@Value("${music.dir:/data/music}") String musicDir) {
+    public BiliAudioExtractor(@Value("${music.dir:/data/music}") String musicDir,
+                              @Value("${bili.sessdata:}") String sessdata) {
         this.musicDir = Paths.get(musicDir);
+        this.sessdata = sessdata;
     }
 
     /** 是否安装了 ffmpeg（有则把 AAC 转成 MP3，通用性更好） */
@@ -106,11 +109,32 @@ public class BiliAudioExtractor {
         for (JsonNode a : audio) {
             if (a.path("bandwidth").asLong() > best.path("bandwidth").asLong()) best = a;
         }
-        String audioUrl = best.path("base_url").asText();
-        if (audioUrl.isBlank()) throw new IllegalStateException("未取到音频流地址");
+        java.util.List<String> candidates = new java.util.ArrayList<>();
+        addIfNotBlank(candidates, best.path("base_url").asText());
+        for (JsonNode u : best.path("backup_url")) addIfNotBlank(candidates, u.asText());
+        for (JsonNode a : audio) {
+            if (a == best) continue;
+            addIfNotBlank(candidates, a.path("base_url").asText());
+            for (JsonNode u : a.path("backup_url")) addIfNotBlank(candidates, u.asText());
+        }
+        if (candidates.isEmpty()) throw new IllegalStateException("未取到音频流地址");
 
         Path file = musicDir.resolve(bvid + ".m4a");
-        download(audioUrl, file);
+        Exception last = null;
+        boolean downloaded = false;
+        for (String audioUrl : candidates) {
+            try {
+                download(audioUrl, file);
+                downloaded = true;
+                break;
+            } catch (Exception e) {
+                last = e;
+                log.warn("音频源下载失败，尝试备用地址: {}", e.getMessage());
+            }
+        }
+        if (!downloaded) {
+            throw new IllegalStateException("音频下载被 B 站临时限制，请几分钟后再试");
+        }
         if (ffmpegAvailable()) {
             file = toMp3(file);
         }
@@ -122,16 +146,70 @@ public class BiliAudioExtractor {
         music.setDuration(data.path("duration").asInt(0));
         music.setCover(data.path("pic").asText(""));
         music.setFilePath(file.getFileName().toString());
+
+        // 字幕：CC / AI 字幕（JSON）→ WebVTT；没有则留空
+        try {
+            String subtitleUrl = findSubtitleUrl(bvid, cid);
+            if (subtitleUrl != null) {
+                music.setSubtitle(saveSubtitle(subtitleUrl, bvid));
+            }
+        } catch (Exception e) {
+            log.warn("字幕抓取失败（不影响音频）: {}", e.getMessage());
+        }
         return music;
     }
 
+    /** player API 找一条字幕（优先中文 CC，其次 AI 字幕），返回字幕 JSON 地址 */
+    private String findSubtitleUrl(String bvid, long cid) throws Exception {
+        JsonNode player = getJson("https://api.bilibili.com/x/player/v2?bvid=" + bvid + "&cid=" + cid);
+        JsonNode subs = player.path("data").path("subtitle").path("subtitles");
+        if (!subs.isArray() || subs.isEmpty()) return null;
+        JsonNode pick = null;
+        for (JsonNode sub : subs) {
+            if (sub.path("lan").asText().startsWith("zh")) { pick = sub; break; }
+            if (pick == null) pick = sub;
+        }
+        if (pick == null) return null;
+        String url = pick.path("subtitle_url").asText();
+        return url.startsWith("//") ? "https:" + url : url;
+    }
+
+    /** 字幕 JSON（body: from/to/content）转 WebVTT 保存，返回文件名 */
+    private String saveSubtitle(String subtitleUrl, String bvid) throws Exception {
+        JsonNode json = getJson(subtitleUrl);
+        JsonNode body = json.path("body");
+        if (!body.isArray() || body.isEmpty()) return null;
+        StringBuilder vtt = new StringBuilder("WEBVTT\n\n");
+        for (JsonNode line : body) {
+            vtt.append(vttTime(line.path("from").asDouble())).append(" --> ")
+               .append(vttTime(line.path("to").asDouble())).append("\n")
+               .append(line.path("content").asText()).append("\n\n");
+        }
+        Path file = musicDir.resolve(bvid + ".vtt");
+        Files.writeString(file, vtt.toString());
+        return file.getFileName().toString();
+    }
+
+    private String vttTime(double seconds) {
+        int total = (int) seconds;
+        int ms = (int) Math.round((seconds - total) * 1000);
+        return String.format("%02d:%02d:%02d.%03d", total / 3600, total % 3600 / 60, total % 60, ms);
+    }
+
+    private void addIfNotBlank(java.util.List<String> list, String v) {
+        if (v != null && !v.isBlank()) list.add(v);
+    }
+
     private JsonNode getJson(String url) throws Exception {
-        HttpRequest req = HttpRequest.newBuilder(URI.create(url))
+        HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(url))
                 .timeout(Duration.ofSeconds(20))
                 .header("User-Agent", UA)
-                .header("Referer", REFERER)
-                .GET().build();
-        return mapper.readTree(http.send(req, HttpResponse.BodyHandlers.ofString()).body());
+                .header("Referer", REFERER);
+        if (sessdata != null && !sessdata.isBlank()) {
+            builder.header("Cookie", "SESSDATA=" + sessdata);
+        }
+        return mapper.readTree(http.send(builder.GET().build(),
+                HttpResponse.BodyHandlers.ofString()).body());
     }
 
     private void download(String url, Path target) throws Exception {
@@ -142,12 +220,17 @@ public class BiliAudioExtractor {
                 .header("User-Agent", UA)
                 .header("Referer", REFERER)
                 .GET().build();
-        try (InputStream in = http.send(req, HttpResponse.BodyHandlers.ofInputStream()).body()) {
+        HttpResponse<InputStream> resp = http.send(req, HttpResponse.BodyHandlers.ofInputStream());
+        if (resp.statusCode() != 200) {
+            resp.body().close();
+            throw new IllegalStateException("下载失败 HTTP " + resp.statusCode());
+        }
+        try (InputStream in = resp.body()) {
             Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
         }
         if (Files.size(tmp) < 1024) {
             Files.deleteIfExists(tmp);
-            throw new IllegalStateException("下载的音频文件为空（可能被风控），请稍后重试");
+            throw new IllegalStateException("下载的音频内容为空");
         }
         Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
         log.info("B站音频已保存: {} ({} KB)", target, Files.size(target) / 1024);
