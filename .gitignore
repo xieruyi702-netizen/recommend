@@ -21,3 +21,7 @@ logs/
 
 # Docker local data
 mysql-data/
+
+# 音乐文件（运行时产物，不入库）
+music-files/*
+!music-files/README.md

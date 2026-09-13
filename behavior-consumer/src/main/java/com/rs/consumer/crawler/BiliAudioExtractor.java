@@ -46,6 +46,39 @@ public class BiliAudioExtractor {
         this.musicDir = Paths.get(musicDir);
     }
 
+    /** 是否安装了 ffmpeg（有则把 AAC 转成 MP3，通用性更好） */
+    private boolean ffmpegAvailable() {
+        try {
+            Process p = new ProcessBuilder("ffmpeg", "-version").redirectErrorStream(true).start();
+            p.getInputStream().readAllBytes();
+            return p.waitFor(5, java.util.concurrent.TimeUnit.SECONDS) && p.exitValue() == 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** m4a → mp3，失败时保留原 m4a */
+    private Path toMp3(Path m4a) throws Exception {
+        Path mp3 = m4a.resolveSibling(m4a.getFileName().toString().replaceAll("\\.m4a$", ".mp3"));
+        Process p = new ProcessBuilder(
+                "ffmpeg", "-y", "-i", m4a.toString(), "-codec:a", "libmp3lame", "-q:a", "2", mp3.toString())
+                .redirectErrorStream(true).start();
+        p.getInputStream().readAllBytes();
+        if (!p.waitFor(120, java.util.concurrent.TimeUnit.SECONDS) || p.exitValue() != 0
+                || !Files.exists(mp3) || Files.size(mp3) < 1024) {
+            p.destroyForcibly();
+            Files.deleteIfExists(mp3);
+            return m4a;
+        }
+        Files.delete(m4a);
+        return mp3;
+    }
+
+    /** 解析音乐目录下的文件路径 */
+    public Path resolveFile(String fileName) {
+        return musicDir.resolve(fileName);
+    }
+
     /** 从用户输入中提取 bvid（支持整条链接/带参数） */
     public String extractBvid(String input) {
         Matcher m = BVID.matcher(input == null ? "" : input);
@@ -78,6 +111,9 @@ public class BiliAudioExtractor {
 
         Path file = musicDir.resolve(bvid + ".m4a");
         download(audioUrl, file);
+        if (ffmpegAvailable()) {
+            file = toMp3(file);
+        }
 
         Music music = new Music();
         music.setTitle(data.path("title").asText(bvid));

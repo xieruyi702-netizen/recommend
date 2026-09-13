@@ -43,6 +43,7 @@
           <button class="play" :class="{ on: playingId === m.id }" @click="togglePlay(m)">
             {{ playingId === m.id ? '⏸' : '▶' }}
           </button>
+          <button class="del" title="删除" @click="removeMusic(m)">🗑</button>
         </div>
       </div>
     </div>
@@ -117,6 +118,17 @@ export default {
       }
       this.extracting = false
     },
+    async removeMusic(m) {
+      if (!confirm('确定删除「' + m.title + '」吗？音频文件将一并删除。')) return
+      try {
+        const res = await fetch('/api/music/' + m.id, { method: 'DELETE' }).then(r => r.json())
+        if (res.ok) {
+          if (this.playingId === m.id) { this.playingId = null; this.playing = null }
+          this.toast('已删除')
+          await this.loadList()
+        } else this.toast(res.msg, 'warn')
+      } catch (e) { this.toast('删除失败', 'warn') }
+    },
     togglePlay(m) {
       if (this.playingId === m.id) {
         this.$refs.audio.pause()
@@ -179,6 +191,8 @@ body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 .play { width: 42px; height: 42px; border-radius: 50%; border: none; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff; font-size: 15px; cursor: pointer; flex-shrink: 0; transition: transform .15s; }
 .play:hover { transform: scale(1.1); }
 .play.on { outline: 3px solid rgba(224,69,60,.3); }
+.del { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: #fff; color: var(--dim); font-size: 14px; cursor: pointer; flex-shrink: 0; transition: all .2s; }
+.del:hover { color: var(--accent); border-color: var(--accent); }
 
 /* ---- 底部播放条 ---- */
 .player { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: #fff; box-shadow: 0 -4px 20px rgba(0,0,0,.1); display: flex; align-items: center; gap: 16px; padding: 10px 16px; }

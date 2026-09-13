@@ -13,5 +13,9 @@ public interface MusicMapper {
 
     Music selectByBvid(@Param("bvid") String bvid);
 
+    Music selectById(@Param("id") long id);
+
+    int deleteById(@Param("id") long id);
+
     List<Music> selectAll();
 }

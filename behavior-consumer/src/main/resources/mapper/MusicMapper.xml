@@ -13,6 +13,16 @@
         WHERE bvid = #{bvid}
     </select>
 
+    <delete id="deleteById">
+        DELETE FROM music WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" resultType="com.rs.consumer.entity.Music">
+        SELECT id, title, artist, bvid, duration, file_path, cover, created_at
+        FROM music
+        WHERE id = #{id}
+    </select>
+
     <select id="selectAll" resultType="com.rs.consumer.entity.Music">
         SELECT id, title, artist, bvid, duration, file_path, cover, created_at
         FROM music

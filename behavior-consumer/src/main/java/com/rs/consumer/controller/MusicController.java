@@ -45,4 +45,20 @@ public class MusicController {
     public List<Music> list() {
         return musicMapper.selectAll();
     }
+
+    /** 删除音乐：同时移除音频文件 */
+    @DeleteMapping("/{id}")
+    public Map<String, Object> delete(@PathVariable long id) {
+        Music music = musicMapper.selectById(id);
+        if (music == null) {
+            return Map.of("ok", false, "msg", "音乐不存在");
+        }
+        musicMapper.deleteById(id);
+        try {
+            java.nio.file.Files.deleteIfExists(extractor.resolveFile(music.getFilePath()));
+        } catch (Exception e) {
+            return Map.of("ok", false, "msg", "记录已删除，但文件清理失败: " + e.getMessage());
+        }
+        return Map.of("ok", true, "msg", "已删除");
+    }
 }
