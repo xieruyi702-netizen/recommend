@@ -144,3 +144,15 @@ INSERT INTO items (title, tags, author, hot_score, ctr, publish_time, url, summa
 ('中央网信办等：开展军队文职人员考试培训专项整治','时政,politics','人民网',27.4,0.1635,NOW()-INTERVAL 50 HOUR,'http://politics.people.com.cn/n1/2025/0604/c1001-40493763.html','关于开展军队文职人员考试培训专项整治的通告 　　近年来，一些教育培训机构以军队文职人员考试培训为名违法违规经营，出现无证经营、虚假宣传、借机敛财等乱象，损害了考生权益，严重影响军队形象声誉和考试公平性。为维护人民军队良好形象、考生切身利益和市场经营秩序，现就有关问题通告如下： 　　一、严禁仿冒军队文职人员考试主管部门官方微信、微博、网站等行为；不得在互联网上擅自解读、曲解军队文职人员管理、军队文职'),
 ('多重政策叠加利好 我国网络安全产业全面提速','科技,it','人民网',52.0,0.0913,NOW()-INTERVAL 40 HOUR,'http://it.people.com.cn/n1/2021/1008/c433780-32247573.html','人民网北京8月27日电 （记者毕磊）随着我国推进网络安全立法、完善相关制度建设，网络安全行业规模也日益扩大。根据工信部今年编制的《网络安全产业高质量发展三年行动计划》，到2023年，我国网络安全产业规模超过2500亿元，电信等重点行业网络安全投入占信息化投入比例不低于10%。在2500亿市场的加持下，中国网络安全产业正迎来全面提速发展。  近日，在2021北京网络安全大会上，工业和信息化部党组成员'),
 ('从烟火气里寻找基层治理良方（一线行走）','时政,politics','人民网',87.9,0.1597,NOW()-INTERVAL 3 HOUR,'http://politics.people.com.cn/n1/2025/0603/c458474-40492817.html','把每条居民建议转化成基层治理的“施工图”，才能让社区变成真正的幸福家园，在升腾的烟火气中密切干群关系、增进民生福祉 中午时分，山东省济南市天桥区堤口路街道无影山中路社区的“乐邻”食堂里人头攒动。 无影山中路社区大，老年人多，为了帮助他们享受到便利的助餐服务，社区党委决定建一所社区食堂。小餐盘连着大民生，要想把社区食堂建好并非易事，居民们有担心、有疑问，社区干部一一解释、逐个解决。 食堂建在哪？社区');
+
+-- 音乐表（B 站音频提取入库）
+CREATE TABLE IF NOT EXISTS music (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(512) NOT NULL,
+    artist VARCHAR(128) DEFAULT '' COMMENT 'UP主',
+    bvid VARCHAR(32) NOT NULL UNIQUE,
+    duration INT DEFAULT 0 COMMENT '秒',
+    file_path VARCHAR(256) NOT NULL COMMENT '文件名，静态目录 /music/ 下',
+    cover VARCHAR(512) DEFAULT '' COMMENT '封面图 URL',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

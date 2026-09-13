@@ -125,6 +125,8 @@ services:
   behavior-consumer:
     build: { context: ., dockerfile: behavior-consumer/Dockerfile }
     container_name: rs-consumer
+    volumes:
+      - music-data:/data/music
     environment: *java-env
     depends_on:
       mysql: { condition: service_healthy }

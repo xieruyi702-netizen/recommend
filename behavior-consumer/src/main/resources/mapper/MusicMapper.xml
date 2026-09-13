@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.rs.consumer.mapper.MusicMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO music (title, artist, bvid, duration, file_path, cover)
+        VALUES (#{title}, #{artist}, #{bvid}, #{duration}, #{filePath}, #{cover})
+    </insert>
+
+    <select id="selectByBvid" resultType="com.rs.consumer.entity.Music">
+        SELECT id, title, artist, bvid, duration, file_path, cover, created_at
+        FROM music
+        WHERE bvid = #{bvid}
+    </select>
+
+    <select id="selectAll" resultType="com.rs.consumer.entity.Music">
+        SELECT id, title, artist, bvid, duration, file_path, cover, created_at
+        FROM music
+        ORDER BY id DESC
+    </select>
+</mapper>
