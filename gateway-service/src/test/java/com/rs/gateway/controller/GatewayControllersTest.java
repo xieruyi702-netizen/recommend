@@ -36,6 +36,8 @@ class GatewayControllersTest {
     private KafkaTemplate<String, BehaviorEvent> kafkaTemplate;
     @Mock
     private TokenService tokenService;
+    @Mock
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     private Item entity(long id) {
         Item i = new Item();
@@ -93,9 +95,9 @@ class GatewayControllersTest {
 
     @Test
     void loginShouldFailOnWrongAccount() {
-        when(userMapper.findByAccountAndPassword("alice", "bad")).thenReturn(null);
+        when(userMapper.findByAccount("alice")).thenReturn(null);
 
-        Map<String, Object> out = new UserController(userMapper, tokenService)
+        Map<String, Object> out = new UserController(userMapper, tokenService, passwordEncoder)
                 .login(Map.of("account", "alice", "password", "bad"));
 
         assertEquals(false, out.get("ok"));
@@ -107,10 +109,12 @@ class GatewayControllersTest {
         u.setId(7L);
         u.setUsername("alice");
         u.setInterestTags("科技");
-        when(userMapper.findByAccountAndPassword("alice", "pw")).thenReturn(u);
+        u.setPassword("{bcrypt}$2a$10$storedhash");
+        when(userMapper.findByAccount("alice")).thenReturn(u);
+        when(passwordEncoder.matches("pw", "$2a$10$storedhash")).thenReturn(true);
         when(tokenService.issue(7L)).thenReturn("tok-7");
 
-        Map<String, Object> out = new UserController(userMapper, tokenService)
+        Map<String, Object> out = new UserController(userMapper, tokenService, passwordEncoder)
                 .login(Map.of("account", "alice", "password", "pw"));
 
         assertEquals(true, out.get("ok"));
@@ -120,7 +124,7 @@ class GatewayControllersTest {
 
     @Test
     void registerShouldRejectInvalidEmail() {
-        Map<String, Object> out = new UserController(userMapper, tokenService)
+        Map<String, Object> out = new UserController(userMapper, tokenService, passwordEncoder)
                 .register(Map.of("username", "a", "email", "not-an-email", "password", "p"));
 
         assertEquals(false, out.get("ok"));

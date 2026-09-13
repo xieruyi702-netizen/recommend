@@ -13,8 +13,10 @@ public interface UserMapper {
 
     User findById(@Param("id") Long id);
 
-    /** 账号（用户名或邮箱）+ 密码登录校验 */
-    User findByAccountAndPassword(@Param("account") String account, @Param("password") String password);
+    /** 账号（用户名或邮箱）查用户，密码校验交给 PasswordEncoder */
+    User findByAccount(@Param("account") String account);
+
+    int updatePassword(@Param("id") long id, @Param("password") String password);
 
     Long findIdByUsername(@Param("username") String username);
 

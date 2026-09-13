@@ -3,6 +3,7 @@ package com.rs.gateway.controller;
 import com.rs.api.entity.User;
 import com.rs.gateway.auth.TokenService;
 import com.rs.gateway.mapper.UserMapper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -24,15 +25,17 @@ public class EmailAuthController {
 
     private final UserMapper userMapper;
     private final TokenService tokenService;
+    private final PasswordEncoder passwordEncoder;
     private final StringRedisTemplate redis;
     private final JavaMailSender mailSender;   // 无 SMTP 配置时容器内不存在该 Bean
     private final boolean smtpEnabled;
 
-    public EmailAuthController(UserMapper userMapper, TokenService tokenService, StringRedisTemplate redis,
+    public EmailAuthController(UserMapper userMapper, TokenService tokenService, PasswordEncoder passwordEncoder, StringRedisTemplate redis,
                                org.springframework.beans.factory.ObjectProvider<JavaMailSender> mailSenderProvider,
                                @org.springframework.beans.factory.annotation.Value("${spring.mail.host:}") String mailHost) {
         this.userMapper = userMapper;
         this.tokenService = tokenService;
+        this.passwordEncoder = passwordEncoder;
         this.redis = redis;
         this.mailSender = mailSenderProvider.getIfAvailable();
         this.smtpEnabled = mailSender != null && !mailHost.isBlank();
@@ -122,7 +125,7 @@ public class EmailAuthController {
         User user = new User();
         user.setUsername(username);
         user.setEmail(email);
-        user.setPassword(password);
+        user.setPassword("{bcrypt}" + passwordEncoder.encode(password));
         user.setInterestTags(interestTags);
         userMapper.insert(user);
     }

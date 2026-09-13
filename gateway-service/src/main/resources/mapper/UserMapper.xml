@@ -14,10 +14,14 @@
         SELECT id, username, interest_tags FROM users WHERE id = #{id}
     </select>
 
-    <select id="findByAccountAndPassword" resultType="User">
-        SELECT id, username, interest_tags FROM users
-        WHERE (username = #{account} OR email = #{account}) AND password = #{password}
+    <select id="findByAccount" resultType="User">
+        SELECT id, username, interest_tags, password FROM users
+        WHERE username = #{account} OR email = #{account}
     </select>
+
+    <update id="updatePassword">
+        UPDATE users SET password = #{password} WHERE id = #{id}
+    </update>
 
     <select id="findIdByUsername" resultType="long">
         SELECT id FROM users WHERE username = #{username}

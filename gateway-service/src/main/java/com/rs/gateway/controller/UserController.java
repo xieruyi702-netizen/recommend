@@ -3,6 +3,7 @@ package com.rs.gateway.controller;
 import com.rs.api.entity.User;
 import com.rs.gateway.auth.TokenService;
 import com.rs.gateway.mapper.UserMapper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -13,10 +14,16 @@ public class UserController {
 
     private final UserMapper userMapper;
     private final TokenService tokenService;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserController(UserMapper userMapper, TokenService tokenService) {
+    public UserController(UserMapper userMapper, TokenService tokenService, PasswordEncoder passwordEncoder) {
         this.userMapper = userMapper;
         this.tokenService = tokenService;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    private String encode(String raw) {
+        return "{bcrypt}" + passwordEncoder.encode(raw);
     }
 
     /** 登录：账号可以是用户名或邮箱 */
@@ -27,9 +34,25 @@ public class UserController {
             account = body.getOrDefault("username", "");
         }
         String password = body.getOrDefault("password", "");
-        User user = userMapper.findByAccountAndPassword(account, password);
+        User user = userMapper.findByAccount(account);
         if (user == null) {
             return Map.of("ok", false, "msg", "账号或密码错误");
+        }
+        // 密码校验：{bcrypt} 哈希比对；{plain}/无前缀为存量明文，登录成功即惰性升级为哈希
+        String stored = user.getPassword();
+        boolean matched;
+        if (stored != null && stored.startsWith("{bcrypt}")) {
+            matched = passwordEncoder.matches(password, stored.substring(8));
+        } else if (stored != null && stored.startsWith("{plain}")) {
+            matched = stored.substring(7).equals(password);
+        } else {
+            matched = stored != null && stored.equals(password);
+        }
+        if (!matched) {
+            return Map.of("ok", false, "msg", "账号或密码错误");
+        }
+        if (stored == null || !stored.startsWith("{bcrypt}")) {
+            userMapper.updatePassword(user.getId(), encode(password));   // 惰性迁移
         }
         return Map.of("ok", true,
                 "userId", user.getId(),
@@ -54,7 +77,7 @@ public class UserController {
         User user = new User();
         user.setUsername(username);
         user.setEmail(email);
-        user.setPassword(password);
+        user.setPassword(encode(password));
         user.setInterestTags(interestTags);
         try {
             userMapper.insert(user);
