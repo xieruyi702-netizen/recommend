@@ -2,26 +2,14 @@ server:
   port: 9103
 
 spring:
+  config:
+    import: optional:classpath:config/common.yml
   application:
     name: rank-service
-  datasource:
-    url: jdbc:mysql://${MYSQL_HOST:mysql}:3306/recommend?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci
-    username: root
-    password: ${MYSQL_ROOT_PASSWORD:root123}
 
 dubbo:
   application:
     name: rank-service
-  registry:
-    address: nacos://${NACOS_ADDR:nacos:8848}
   protocol:
     name: dubbo
     port: 20883
-  provider:
-    timeout: 3000
-
-mybatis:
-  mapper-locations: classpath:mapper/*.xml
-  type-aliases-package: com.rs.api.entity
-  configuration:
-    map-underscore-to-camel-case: true

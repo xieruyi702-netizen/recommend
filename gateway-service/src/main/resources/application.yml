@@ -2,16 +2,10 @@ server:
   port: 9100
 
 spring:
+  config:
+    import: optional:classpath:config/common.yml
   application:
     name: gateway-service
-  datasource:
-    url: jdbc:mysql://${MYSQL_HOST:mysql}:3306/recommend?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci
-    username: root
-    password: ${MYSQL_ROOT_PASSWORD:root123}
-  data:
-    redis:
-      host: ${REDIS_HOST:redis}
-      port: 6379
   servlet:
     multipart:
       max-file-size: 200MB
@@ -25,7 +19,6 @@ spring:
       mail.smtp.auth: true
       mail.smtp.ssl.enable: true
   kafka:
-    bootstrap-servers: ${KAFKA_ADDR:kafka:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -33,8 +26,6 @@ spring:
 dubbo:
   application:
     name: gateway-service
-  registry:
-    address: nacos://${NACOS_ADDR:nacos:8848}
   consumer:
     check: false
     timeout: 3000
@@ -42,9 +33,3 @@ dubbo:
 logging:
   level:
     root: info
-
-mybatis:
-  mapper-locations: classpath:mapper/*.xml
-  type-aliases-package: com.rs.api.entity
-  configuration:
-    map-underscore-to-camel-case: true
