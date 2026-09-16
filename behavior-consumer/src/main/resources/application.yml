@@ -7,6 +7,9 @@ spring:
   application:
     name: behavior-consumer
   kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
     consumer:
       group-id: behavior-group
       auto-offset-reset: earliest

@@ -2,7 +2,6 @@ package com.rs.consumer.crawler;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rs.consumer.entity.Music;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -82,15 +81,13 @@ public class BiliAudioExtractor {
         return musicDir.resolve(fileName);
     }
 
-    /** 从用户输入中提取 bvid（支持整条链接/带参数） */
-    public String extractBvid(String input) {
-        Matcher m = BVID.matcher(input == null ? "" : input);
-        if (!m.find()) throw new IllegalArgumentException("无法从链接中识别 BV 号");
-        return m.group(1);
+    /** 提取结果（基础设施层记录，由应用服务转换为领域对象） */
+    public record BiliTrack(String bvid, String title, String artist, int duration,
+                            String cover, String filePath, String subtitle) {
     }
 
     /** 提取音频并保存到音乐目录，返回元数据（不落库） */
-    public Music extract(String bvid) throws Exception {
+    public BiliTrack extract(String bvid) throws Exception {
         JsonNode view = getJson("https://api.bilibili.com/x/web-interface/view?bvid=" + bvid);
         if (view.path("code").asInt() != 0) {
             throw new IllegalArgumentException("视频不存在或不可访问: " + view.path("message").asText());
@@ -139,24 +136,22 @@ public class BiliAudioExtractor {
             file = toMp3(file);
         }
 
-        Music music = new Music();
-        music.setTitle(data.path("title").asText(bvid));
-        music.setArtist(data.path("owner").path("name").asText(""));
-        music.setBvid(bvid);
-        music.setDuration(data.path("duration").asInt(0));
-        music.setCover(data.path("pic").asText(""));
-        music.setFilePath(file.getFileName().toString());
-
-        // 字幕：CC / AI 字幕（JSON）→ WebVTT；没有则留空
+        String subtitle = null;
         try {
             String subtitleUrl = findSubtitleUrl(bvid, cid);
             if (subtitleUrl != null) {
-                music.setSubtitle(saveSubtitle(subtitleUrl, bvid));
+                subtitle = saveSubtitle(subtitleUrl, bvid);
             }
         } catch (Exception e) {
             log.warn("字幕抓取失败（不影响音频）: {}", e.getMessage());
         }
-        return music;
+        return new BiliTrack(bvid,
+                data.path("title").asText(bvid),
+                data.path("owner").path("name").asText(""),
+                data.path("duration").asInt(0),
+                data.path("pic").asText(""),
+                file.getFileName().toString(),
+                subtitle);
     }
 
     /** player API 找一条字幕（优先中文 CC，其次 AI 字幕），返回字幕 JSON 地址 */

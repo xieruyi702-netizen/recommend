@@ -3,8 +3,25 @@ package com.rs.consumer.entity;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-/** music 表实体：提取入库的 B 站音频 */
+/** music 表实体（音乐聚合根）：工厂方法封装「提取入库」的领域规则 */
 public class Music implements Serializable {
+
+    /**
+     * 从一次成功的 B 站音频提取构建聚合。
+     * 领域规则：同一 bvid 只保留一份音乐。
+     */
+    public static Music extractedFrom(String bvid, String title, String artist,
+                                      int duration, String cover, String filePath, String subtitle) {
+        Music m = new Music();
+        m.setBvid(bvid);
+        m.setTitle(title);
+        m.setArtist(artist);
+        m.setDuration(duration);
+        m.setCover(cover);
+        m.setFilePath(filePath);
+        m.setSubtitle(subtitle == null ? "" : subtitle);
+        return m;
+    }
 
     private Long id;
     private String title;

@@ -35,7 +35,7 @@ class RankServiceImplTest {
         config.setWHot(0.2);
         config.setWFresh(0.1);
         when(rankConfigMapper.selectById(1L)).thenReturn(config);
-        service = new RankServiceImpl(rankConfigMapper, userMapper);
+        service = new RankServiceImpl(rankConfigMapper, userMapper, new com.rs.rank.domain.ScoringPolicy.WeightedLinear());
     }
 
     private ItemDTO item(long id, String tags, double ctr, double hotScore, String author) {
