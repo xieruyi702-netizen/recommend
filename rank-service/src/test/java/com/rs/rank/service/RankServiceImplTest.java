@@ -1,9 +1,9 @@
-package com.rs.rank.application;
+package com.rs.rank.service;
 
 import com.rs.api.ItemDTO;
 import com.rs.api.entity.RankConfig;
-import com.rs.rank.infrastructure.persistence.RankConfigMapper;
-import com.rs.rank.infrastructure.persistence.UserMapper;
+import com.rs.rank.mapper.RankConfigMapper;
+import com.rs.rank.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

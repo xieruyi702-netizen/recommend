@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.rs.rank.infrastructure.persistence.RankConfigMapper">
+<mapper namespace="com.rs.rank.mapper.RankConfigMapper">
 
     <select id="selectById" resultType="RankConfig">
         SELECT id, w_ctr, w_interest, w_hot, w_fresh

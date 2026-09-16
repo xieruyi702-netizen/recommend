@@ -1,10 +1,10 @@
 package com.rs.consumer.application;
 
-import com.rs.consumer.infrastructure.client.BiliAudioExtractor;
+import com.rs.consumer.crawler.BiliAudioExtractor;
 import com.rs.consumer.domain.Bvid;
 import com.rs.consumer.domain.MusicDomainException;
 import com.rs.consumer.entity.Music;
-import com.rs.consumer.infrastructure.persistence.MusicMapper;
+import com.rs.consumer.mapper.MusicMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;

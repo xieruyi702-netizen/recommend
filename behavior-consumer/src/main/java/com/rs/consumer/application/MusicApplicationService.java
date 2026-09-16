@@ -1,11 +1,11 @@
 package com.rs.consumer.application;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rs.consumer.infrastructure.client.BiliAudioExtractor;
+import com.rs.consumer.crawler.BiliAudioExtractor;
 import com.rs.consumer.domain.Bvid;
 import com.rs.consumer.domain.MusicDomainException;
 import com.rs.consumer.entity.Music;
-import com.rs.consumer.infrastructure.persistence.MusicMapper;
+import com.rs.consumer.mapper.MusicMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
