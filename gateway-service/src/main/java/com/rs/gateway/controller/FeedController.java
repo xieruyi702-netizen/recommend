@@ -42,6 +42,18 @@ public class FeedController {
         return ctx.itemList(FlowContext.RESULT);
     }
 
+    /** 重载场景流配置（改编排不发版） */
+    @PostMapping("/flows/reload")
+    public Map<String, Object> reloadFlows() {
+        return registry.reload();
+    }
+
+    /** 当前已注册的场景 */
+    @GetMapping("/flows")
+    public Map<String, Object> flows() {
+        return Map.of("scenes", registry.scenes());
+    }
+
     /**
      * 综合性能对比：每个场景 × 每种架构各执行 runs 次。
      * 返回 {scene: {pipeline: {...}, dag: {...}, runs: N}}

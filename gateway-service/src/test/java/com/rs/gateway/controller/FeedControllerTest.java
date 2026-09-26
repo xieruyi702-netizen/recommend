@@ -4,6 +4,7 @@ import com.rs.api.ItemDTO;
 import com.rs.coarse.api.CoarseRankService;
 import com.rs.gateway.engine.Scene;
 import com.rs.gateway.engine.SceneFlowRegistry;
+import org.springframework.core.io.DefaultResourceLoader;
 import com.rs.gateway.engine.operators.CoarseRankOperator;
 import com.rs.gateway.engine.operators.FavoriteFilterOperator;
 import com.rs.gateway.engine.operators.InterestBoostOperator;
@@ -84,8 +85,9 @@ class FeedControllerTest {
         RerankOperator rerank = new RerankOperator();
         inject(rerank, "rerankService", rerankService);
 
-        var registry = new SceneFlowRegistry(recall, profile, favFilter, coarse,
-                rank, boost, metrics, rerank, Executors.newFixedThreadPool(4));
+        var registry = new SceneFlowRegistry(List.of(recall, profile, favFilter, coarse,
+                rank, boost, metrics, rerank), Executors.newFixedThreadPool(4),
+                new org.springframework.core.io.DefaultResourceLoader(), "classpath:flows/flows.json");
         return new FeedController(registry, Executors.newFixedThreadPool(4));
     }
 
@@ -163,5 +165,64 @@ class FeedControllerTest {
         stubBase();
         var c = controller();
         assertThrows(IllegalArgumentException.class, () -> c.recommend(9L, 3, "whatever", "pipeline"));
+    }
+
+    @Test
+    void reloadShouldSwapFlowsDynamically(@org.junit.jupiter.api.io.TempDir java.nio.file.Path tmp) throws Exception {
+        var file = tmp.resolve("flows.json");
+        java.nio.file.Files.writeString(file, """
+                {"related": {"graph": [
+                    {"name": "recall", "dependsOn": []},
+                    {"name": "rerank", "dependsOn": ["recall"]}
+                ]}}
+                """);
+        var registry = new SceneFlowRegistry(
+                List.of(new RecallOperator(), new CoarseRankOperator(), new RerankOperator()),
+                Executors.newFixedThreadPool(4),
+                new org.springframework.core.io.DefaultResourceLoader(),
+                "file:" + file);
+
+        // 初始只有 related
+        assertTrue(registry.scenes().contains("related"));
+
+        // 修改外部文件 → reload → 新场景生效，旧场景消失
+        java.nio.file.Files.writeString(file, """
+                {"home": {"graph": [
+                    {"name": "recall", "dependsOn": []},
+                    {"name": "rerank", "dependsOn": ["recall"]}
+                ]}}
+                """);
+        registry.reload();
+
+        assertTrue(registry.scenes().contains("home"));
+        assertFalse(registry.scenes().contains("related"));
+    }
+
+    @Test
+    void badConfigShouldKeepOldFlows(@org.junit.jupiter.api.io.TempDir java.nio.file.Path tmp) throws Exception {
+        var file = tmp.resolve("flows.json");
+        java.nio.file.Files.writeString(file, """
+                {"related": {"graph": [
+                    {"name": "recall", "dependsOn": []},
+                    {"name": "rerank", "dependsOn": ["recall"]}
+                ]}}
+                """);
+        var registry = new SceneFlowRegistry(
+                List.of(new RecallOperator(), new CoarseRankOperator(), new RerankOperator()),
+                Executors.newFixedThreadPool(4),
+                new org.springframework.core.io.DefaultResourceLoader(),
+                "file:" + file);
+
+        // 写入带环的坏配置
+        java.nio.file.Files.writeString(file, """
+                {"broken": {"graph": [
+                    {"name": "a", "dependsOn": ["b"]},
+                    {"name": "b", "dependsOn": ["a"]}
+                ]}}
+                """);
+        assertThrows(IllegalStateException.class, registry::reload);
+
+        // 坏配置不生效，旧流保留
+        assertTrue(registry.scenes().contains("related"));
     }
 }

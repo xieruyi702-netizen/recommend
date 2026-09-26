@@ -1,0 +1,31 @@
+{
+  "home": {
+    "graph": [
+      {"name": "recall", "dependsOn": []},
+      {"name": "profile", "dependsOn": []},
+      {"name": "favFilter", "dependsOn": ["recall"]},
+      {"name": "coarseRank", "dependsOn": ["favFilter"]},
+      {"name": "rank", "dependsOn": ["coarseRank"]},
+      {"name": "boost", "dependsOn": ["rank", "profile"]},
+      {"name": "metrics", "dependsOn": ["rank"]},
+      {"name": "rerank", "dependsOn": ["boost"]}
+    ]
+  },
+  "related": {
+    "graph": [
+      {"name": "recall", "dependsOn": []},
+      {"name": "coarseRank", "dependsOn": ["recall"]},
+      {"name": "rerank", "dependsOn": ["coarseRank"]}
+    ]
+  },
+  "cold_start": {
+    "graph": [
+      {"name": "recall", "dependsOn": []},
+      {"name": "favFilter", "dependsOn": ["recall"]},
+      {"name": "coarseRank", "dependsOn": ["favFilter"]},
+      {"name": "rank", "dependsOn": ["coarseRank"]},
+      {"name": "metrics", "dependsOn": ["rank"]},
+      {"name": "rerank", "dependsOn": ["metrics"]}
+    ]
+  }
+}

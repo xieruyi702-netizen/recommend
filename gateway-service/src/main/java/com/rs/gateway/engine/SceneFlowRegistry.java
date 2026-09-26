@@ -1,69 +1,81 @@
 package com.rs.gateway.engine;
 
-import com.rs.gateway.engine.operators.CoarseRankOperator;
-import com.rs.gateway.engine.operators.FavoriteFilterOperator;
-import com.rs.gateway.engine.operators.InterestBoostOperator;
-import com.rs.gateway.engine.operators.MetricsOperator;
-import com.rs.gateway.engine.operators.ProfileOperator;
-import com.rs.gateway.engine.operators.RankOperator;
-import com.rs.gateway.engine.operators.RecallOperator;
-import com.rs.gateway.engine.operators.RerankOperator;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
+
+import java.util.stream.Collectors;
 
 /**
- * 场景流注册表：同一套算子，按场景组装出不同的 Pipeline / DAG。
- * 新增场景 = 加一个组装方法；新增算子 = 算子类 + 相关场景的组装行。
+ * 场景流注册表（配置化编排）：
+ * 场景 → DAG 图定义外置在 JSON（classpath:flows/flows.json，可被 flows.location 覆盖为外部文件），
+ * 启动/重载时经 DagFlow.load 加载（含三色检环），Pipeline 顺序由 Kahn 分层扁平化自动推导。
+ * 改编排不发版：修改 JSON 后调 reload 接口即可生效；坏配置自动保留旧版本。
  */
 @Component
 public class SceneFlowRegistry {
 
-    private final Map<Scene, Pipeline> pipelines = new EnumMap<>(Scene.class);
-    private final Map<Scene, DagFlow> dagFlows = new EnumMap<>(Scene.class);
+    private final Map<String, Operator> operators;
+    private final ExecutorService dagExecutor;
+    private final ResourceLoader resourceLoader;
+    private final String location;
 
-    public SceneFlowRegistry(RecallOperator recall,
-                             ProfileOperator profile,
-                             FavoriteFilterOperator favFilter,
-                             CoarseRankOperator coarse,
-                             RankOperator rank,
-                             InterestBoostOperator boost,
-                             MetricsOperator metrics,
-                             RerankOperator rerank,
-                             ExecutorService dagExecutor) {
-        // ── HOME：完整 8 算子漏斗 ──
-        pipelines.put(Scene.HOME, new Pipeline(List.of(
-                recall, profile, favFilter, coarse, rank, boost, metrics, rerank)));
-        dagFlows.put(Scene.HOME, new DagFlow()
-                .node("recall", recall)
-                .node("profile", profile)
-                .node("favFilter", favFilter).dependsOn("favFilter", "recall")
-                .node("coarseRank", coarse).dependsOn("coarseRank", "favFilter")
-                .node("rank", rank).dependsOn("rank", "coarseRank")
-                .node("boost", boost).dependsOn("boost", "rank", "profile")
-                .node("metrics", metrics).dependsOn("metrics", "rank")
-                .node("rerank", rerank).dependsOn("rerank", "boost"));
+    private volatile Map<Scene, Pipeline> pipelines = new EnumMap<>(Scene.class);
+    private volatile Map<Scene, DagFlow> dagFlows = new EnumMap<>(Scene.class);
 
-        // ── RELATED：低延迟轻量链路（相关推荐，跳过画像/过滤/加权/指标）──
-        pipelines.put(Scene.RELATED, new Pipeline(List.of(recall, coarse, rerank)));
-        dagFlows.put(Scene.RELATED, new DagFlow()
-                .node("recall", recall)
-                .node("coarseRank", coarse).dependsOn("coarseRank", "recall")
-                .node("rerank", rerank).dependsOn("rerank", "coarseRank"));
+    public SceneFlowRegistry(List<Operator> operatorList,
+                             ExecutorService dagExecutor,
+                             ResourceLoader resourceLoader,
+                             @Value("${flows.location:classpath:flows/flows.json}") String location) {
+        this.operators = operatorList.stream()
+                .collect(Collectors.toMap(Operator::name, Function.identity()));
+        this.dagExecutor = dagExecutor;
+        this.resourceLoader = resourceLoader;
+        this.location = location;
+        reload();   // 启动即加载，坏配置快速失败
+    }
 
-        // ── COLD_START：冷启动用户（无画像无收藏，跳过 profile 与 boost，保留指标）──
-        pipelines.put(Scene.COLD_START, new Pipeline(List.of(
-                recall, favFilter, coarse, rank, metrics, rerank)));
-        dagFlows.put(Scene.COLD_START, new DagFlow()
-                .node("recall", recall)
-                .node("favFilter", favFilter).dependsOn("favFilter", "recall")
-                .node("coarseRank", coarse).dependsOn("coarseRank", "favFilter")
-                .node("rank", rank).dependsOn("rank", "coarseRank")
-                .node("metrics", metrics).dependsOn("metrics", "rank")
-                .node("rerank", rerank).dependsOn("rerank", "metrics"));
+    /** 加载/重载：解析 JSON → 每个场景构建 DagFlow → 推导 Pipeline。失败时保留旧版本 */
+    public synchronized Map<String, Object> reload() {
+        Resource resource = resourceLoader.getResource(location);
+        try {
+            JsonNode scenes = new ObjectMapper().readTree(resource.getInputStream());
+            if (!scenes.isObject() || scenes.isEmpty()) {
+                throw new IllegalArgumentException("流定义必须是非空 JSON 对象");
+            }
+            Map<Scene, Pipeline> newPipelines = new EnumMap<>(Scene.class);
+            Map<Scene, DagFlow> newDags = new EnumMap<>(Scene.class);
+            for (var e : scenes.properties()) {
+                Scene scene = Scene.fromCode(e.getKey());
+                DagFlow dag = DagFlow.load(e.getValue().path("graph").toString(), operators);
+                newDags.put(scene, dag);
+                newPipelines.put(scene, new Pipeline(flatten(dag)));
+            }
+            // 原子切换
+            this.dagFlows = newDags;
+            this.pipelines = newPipelines;
+            return Map.of("ok", true, "scenes", newPipelines.keySet().stream()
+                    .map(Scene::code).toList(), "reloadedAt", java.time.LocalDateTime.now().toString());
+        } catch (Exception e) {
+            throw new IllegalStateException("流配置加载失败（保留旧版本）: " + e.getMessage(), e);
+        }
+    }
+
+    /** Kahn 分层扁平化为串行顺序，作为 Pipeline 的算子序 */
+    private List<Operator> flatten(DagFlow dag) {
+        return dag.kahnLevels().stream()
+                .flatMap(List::stream)
+                .map(dag.nodes()::get)
+                .collect(Collectors.toList());
     }
 
     public Pipeline pipeline(Scene scene) {
@@ -77,4 +89,14 @@ public class SceneFlowRegistry {
         if (d == null) throw new IllegalArgumentException("场景未注册: " + scene);
         return d;
     }
+
+    public List<String> scenes() {
+        return pipelines.keySet().stream().map(Scene::code).sorted().toList();
+    }
+
+    @SuppressWarnings("unused")
+    private static <K, V> Map<K, V> copyOf(Map<K, V> m) { return Map.copyOf(m); }
+
+    // 保持 Collectors 导入被使用
+    private static final java.util.stream.Collector<Integer, ?, List<Integer>> DUMMY = Collectors.toList();
 }
