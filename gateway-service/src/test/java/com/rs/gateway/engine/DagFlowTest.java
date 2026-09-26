@@ -55,19 +55,46 @@ class DagFlowTest {
     }
 
     @Test
-    void loadShouldBuildGraphFromJsonAndRejectUnknownNode() throws Exception {
-        String json = "[{\"name\":\"recall\",\"dependsOn\":[]}," +
-                      "{\"name\":\"coarse\",\"dependsOn\":[\"recall\"]}]";
+    void loadShouldDeriveEdgesFromImportsAndExports() throws Exception {
+        String json = """
+                [
+                  {"name": "recall",  "imports": [],                 "exports": ["candidates"]},
+                  {"name": "coarse",  "imports": ["candidates"],     "exports": ["coarsed"]}
+                ]
+                """;
         Map<String, Operator> registry = Map.of(
                 "recall", op("recall"), "coarse", op("coarse"));
 
         DagFlow flow = DagFlow.load(json, registry);
 
-        assertEquals(2, flow.nodes().size());
+        // 依赖边由 imports/exports 自动推导：coarse 依赖 recall
         assertEquals(List.of("recall"), flow.kahnLevels().get(0));
         assertEquals(List.of("coarse"), flow.kahnLevels().get(1));
 
-        assertThrows(IllegalArgumentException.class,
-                () -> DagFlow.load(json, Map.of()));   // 算子未注册 → 加载失败
+        // 消费的特征无人产出 → 明确报错
+        var e = assertThrows(IllegalArgumentException.class,
+                () -> DagFlow.load(json, Map.of("coarse", op("coarse"))));
+        assertTrue(e.getMessage().contains("candidates"));
+    }
+
+    @Test
+    void duplicateProducerShouldBeRejected() {
+        DagFlow dup = new DagFlow()
+                .node("a", op("a"))
+                .node("b", op("b"));
+
+        // 两个节点产出同一特征（模拟：通过 validate 前的 exports 契约检查）
+        assertThrows(IllegalArgumentException.class, () ->
+                DagFlow.load("[{\"name\":\"x\",\"imports\":[\"f\"]},{\"name\":\"y\",\"imports\":[\"f\"]}]",
+                        Map.of("x", new Operator() {
+                            @Override public String name() { return "x"; }
+                            @Override public void execute(FlowContext ctx) { }
+                            @Override public java.util.Set<String> exports() { return java.util.Set.of("f"); }
+                        },
+                           "y", new Operator() {
+                            @Override public String name() { return "y"; }
+                            @Override public void execute(FlowContext ctx) { }
+                            @Override public java.util.Set<String> exports() { return java.util.Set.of("f"); }
+                        })));
     }
 }

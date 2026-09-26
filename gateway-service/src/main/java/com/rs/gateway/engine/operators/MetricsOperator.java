@@ -22,4 +22,14 @@ public class MetricsOperator extends AbstractRecommendOperator {
         redis.opsForHash().increment(STATS_KEY, "recall", ctx.itemList(FlowContext.CANDIDATES).size());
         redis.opsForHash().increment(STATS_KEY, "ranked", ctx.itemList(FlowContext.RANKED).size());
     }
+
+    @Override
+    public java.util.Set<String> imports() {
+        return java.util.Set.of(FlowContext.RANKED);
+    }
+
+    @Override
+    public java.util.Set<String> exports() {
+        return java.util.Set.of(FlowContext.METRICS_WRITTEN);
+    }
 }

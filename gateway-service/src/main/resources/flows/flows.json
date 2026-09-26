@@ -1,60 +1,382 @@
 {
   "home": {
     "dag": [
-      { "name": "recallHot", "dependsOn": [] },
-      { "name": "recallTag", "dependsOn": [] },
-      { "name": "recallCf", "dependsOn": [] },
-      { "name": "recallMerge", "dependsOn": ["recallHot", "recallTag", "recallCf"] },
-      { "name": "profile", "dependsOn": [] },
-      { "name": "favFilter", "dependsOn": ["recallMerge"] },
-      { "name": "coarseRank", "dependsOn": ["favFilter"] },
-      { "name": "rank", "dependsOn": ["coarseRank"] },
-      { "name": "boost", "dependsOn": ["rank", "profile"] },
-      { "name": "metrics", "dependsOn": ["rank"] },
-      { "name": "rerank", "dependsOn": ["boost"] }
+      {
+        "name": "recallHot",
+        "imports": [],
+        "exports": [
+          "recallHot"
+        ]
+      },
+      {
+        "name": "recallTag",
+        "imports": [],
+        "exports": [
+          "recallTag"
+        ]
+      },
+      {
+        "name": "recallCf",
+        "imports": [],
+        "exports": [
+          "recallCf"
+        ]
+      },
+      {
+        "name": "recallMerge",
+        "imports": [
+          "recallHot",
+          "recallTag",
+          "recallCf"
+        ],
+        "exports": [
+          "candidates"
+        ]
+      },
+      {
+        "name": "profile",
+        "imports": [],
+        "exports": [
+          "profile"
+        ]
+      },
+      {
+        "name": "favFilter",
+        "imports": [
+          "candidates"
+        ],
+        "exports": [
+          "filtered"
+        ]
+      },
+      {
+        "name": "coarseRank",
+        "imports": [
+          "filtered"
+        ],
+        "exports": [
+          "coarsed"
+        ]
+      },
+      {
+        "name": "rank",
+        "imports": [
+          "coarsed"
+        ],
+        "exports": [
+          "ranked"
+        ]
+      },
+      {
+        "name": "boost",
+        "imports": [
+          "ranked",
+          "profile"
+        ],
+        "exports": [
+          "boosted"
+        ]
+      },
+      {
+        "name": "metrics",
+        "imports": [
+          "ranked"
+        ],
+        "exports": [
+          "metricsWritten"
+        ]
+      },
+      {
+        "name": "rerank",
+        "imports": [
+          "boosted"
+        ],
+        "exports": [
+          "result"
+        ]
+      }
     ],
     "pipeline": [
-      { "name": "recallHot",    "mode": "parallel", "imports": [],                     "exports": ["candidatesHot"] },
-      { "name": "recallTag",    "mode": "parallel", "imports": [],                     "exports": ["candidatesTag"] },
-      { "name": "recallCf",     "mode": "parallel", "imports": [],                     "exports": ["candidatesCf"] },
-      { "name": "recallMerge",  "mode": "serial",   "imports": ["candidatesHot", "candidatesTag", "candidatesCf"], "exports": ["candidates"] },
-      { "name": "profile",      "mode": "parallel", "imports": [],                     "exports": ["profile"] },
-      { "name": "favFilter",    "mode": "serial",   "imports": ["candidates"],         "exports": ["filtered"] },
-      { "name": "coarseRank",   "mode": "serial",   "imports": ["filtered"],           "exports": ["coarsed"] },
-      { "name": "rank",         "mode": "serial",   "imports": ["coarsed"],            "exports": ["ranked"] },
-      { "name": "boost",        "mode": "parallel", "imports": ["ranked", "profile"],  "exports": ["boosted"] },
-      { "name": "metrics",      "mode": "parallel", "imports": ["ranked"],             "exports": ["metricsWritten"] },
-      { "name": "rerank",       "mode": "serial",   "imports": ["boosted"],            "exports": ["result"] }
+      {
+        "name": "recallHot",
+        "mode": "parallel",
+        "imports": [],
+        "exports": [
+          "candidatesHot"
+        ]
+      },
+      {
+        "name": "recallTag",
+        "mode": "parallel",
+        "imports": [],
+        "exports": [
+          "candidatesTag"
+        ]
+      },
+      {
+        "name": "recallCf",
+        "mode": "parallel",
+        "imports": [],
+        "exports": [
+          "candidatesCf"
+        ]
+      },
+      {
+        "name": "recallMerge",
+        "mode": "serial",
+        "imports": [
+          "candidatesHot",
+          "candidatesTag",
+          "candidatesCf"
+        ],
+        "exports": [
+          "candidates"
+        ]
+      },
+      {
+        "name": "profile",
+        "mode": "parallel",
+        "imports": [],
+        "exports": [
+          "profile"
+        ]
+      },
+      {
+        "name": "favFilter",
+        "mode": "serial",
+        "imports": [
+          "candidates"
+        ],
+        "exports": [
+          "filtered"
+        ]
+      },
+      {
+        "name": "coarseRank",
+        "mode": "serial",
+        "imports": [
+          "filtered"
+        ],
+        "exports": [
+          "coarsed"
+        ]
+      },
+      {
+        "name": "rank",
+        "mode": "serial",
+        "imports": [
+          "coarsed"
+        ],
+        "exports": [
+          "ranked"
+        ]
+      },
+      {
+        "name": "boost",
+        "mode": "parallel",
+        "imports": [
+          "ranked",
+          "profile"
+        ],
+        "exports": [
+          "boosted"
+        ]
+      },
+      {
+        "name": "metrics",
+        "mode": "parallel",
+        "imports": [
+          "ranked"
+        ],
+        "exports": [
+          "metricsWritten"
+        ]
+      },
+      {
+        "name": "rerank",
+        "mode": "serial",
+        "imports": [
+          "boosted"
+        ],
+        "exports": [
+          "result"
+        ]
+      }
     ]
   },
   "related": {
     "dag": [
-      { "name": "recall", "dependsOn": [] },
-      { "name": "coarseRank", "dependsOn": ["recall"] },
-      { "name": "rerank", "dependsOn": ["coarseRank"] }
+      {
+        "name": "recall",
+        "imports": [],
+        "exports": [
+          "candidates"
+        ]
+      },
+      {
+        "name": "coarseRank",
+        "imports": [
+          "candidates"
+        ],
+        "exports": [
+          "coarsed"
+        ]
+      },
+      {
+        "name": "rerank",
+        "imports": [
+          "coarsed"
+        ],
+        "exports": [
+          "result"
+        ]
+      }
     ],
     "pipeline": [
-      { "name": "recall",    "mode": "serial", "imports": [],             "exports": ["candidates"] },
-      { "name": "coarseRank","mode": "serial", "imports": ["candidates"], "exports": ["coarsed"] },
-      { "name": "rerank",    "mode": "serial", "imports": ["coarsed"],    "exports": ["result"] }
+      {
+        "name": "recall",
+        "mode": "serial",
+        "imports": [],
+        "exports": [
+          "candidates"
+        ]
+      },
+      {
+        "name": "coarseRank",
+        "mode": "serial",
+        "imports": [
+          "candidates"
+        ],
+        "exports": [
+          "coarsed"
+        ]
+      },
+      {
+        "name": "rerank",
+        "mode": "serial",
+        "imports": [
+          "coarsed"
+        ],
+        "exports": [
+          "result"
+        ]
+      }
     ]
   },
   "cold_start": {
     "dag": [
-      { "name": "recall", "dependsOn": [] },
-      { "name": "favFilter", "dependsOn": ["recall"] },
-      { "name": "coarseRank", "dependsOn": ["favFilter"] },
-      { "name": "rank", "dependsOn": ["coarseRank"] },
-      { "name": "metrics", "dependsOn": ["rank"] },
-      { "name": "rerank", "dependsOn": ["metrics"] }
+      {
+        "name": "recall",
+        "imports": [],
+        "exports": [
+          "candidates"
+        ]
+      },
+      {
+        "name": "favFilter",
+        "imports": [
+          "candidates"
+        ],
+        "exports": [
+          "filtered"
+        ]
+      },
+      {
+        "name": "coarseRank",
+        "imports": [
+          "filtered"
+        ],
+        "exports": [
+          "coarsed"
+        ]
+      },
+      {
+        "name": "rank",
+        "imports": [
+          "coarsed"
+        ],
+        "exports": [
+          "ranked"
+        ]
+      },
+      {
+        "name": "metrics",
+        "imports": [
+          "ranked"
+        ],
+        "exports": [
+          "metricsWritten"
+        ]
+      },
+      {
+        "name": "rerank",
+        "imports": [
+          "ranked"
+        ],
+        "exports": [
+          "result"
+        ]
+      }
     ],
     "pipeline": [
-      { "name": "recall",    "mode": "parallel", "imports": [],             "exports": ["candidates"] },
-      { "name": "favFilter", "mode": "serial",   "imports": ["candidates"], "exports": ["filtered"] },
-      { "name": "coarseRank","mode": "serial",   "imports": ["filtered"],   "exports": ["coarsed"] },
-      { "name": "rank",      "mode": "serial",   "imports": ["coarsed"],    "exports": ["ranked"] },
-      { "name": "metrics",   "mode": "parallel", "imports": ["ranked"],     "exports": ["metricsWritten"] },
-      { "name": "rerank",    "mode": "serial",   "imports": ["ranked"],     "exports": ["result"] }
+      {
+        "name": "recall",
+        "mode": "parallel",
+        "imports": [],
+        "exports": [
+          "candidates"
+        ]
+      },
+      {
+        "name": "favFilter",
+        "mode": "serial",
+        "imports": [
+          "candidates"
+        ],
+        "exports": [
+          "filtered"
+        ]
+      },
+      {
+        "name": "coarseRank",
+        "mode": "serial",
+        "imports": [
+          "filtered"
+        ],
+        "exports": [
+          "coarsed"
+        ]
+      },
+      {
+        "name": "rank",
+        "mode": "serial",
+        "imports": [
+          "coarsed"
+        ],
+        "exports": [
+          "ranked"
+        ]
+      },
+      {
+        "name": "metrics",
+        "mode": "parallel",
+        "imports": [
+          "ranked"
+        ],
+        "exports": [
+          "metricsWritten"
+        ]
+      },
+      {
+        "name": "rerank",
+        "mode": "serial",
+        "imports": [
+          "ranked"
+        ],
+        "exports": [
+          "result"
+        ]
+      }
     ]
   }
 }

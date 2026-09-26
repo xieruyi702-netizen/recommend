@@ -26,4 +26,14 @@ public class RerankOperator extends AbstractRecommendOperator {
                 FlowContext.BOOSTED, FlowContext.RANKED, FlowContext.FILTERED, FlowContext.CANDIDATES);
         ctx.set(FlowContext.RESULT, rerankService.rerank(ctx.getUserId(), input, ctx.getSize()));
     }
+
+    @Override
+    public java.util.Set<String> imports() {
+        return java.util.Set.of(FlowContext.BOOSTED);
+    }
+
+    @Override
+    public java.util.Set<String> exports() {
+        return java.util.Set.of(FlowContext.RESULT);
+    }
 }

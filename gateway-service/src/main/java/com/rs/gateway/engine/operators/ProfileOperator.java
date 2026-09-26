@@ -26,4 +26,14 @@ public class ProfileOperator extends AbstractRecommendOperator {
                 ? Set.of() : new HashSet<>(Arrays.asList(tags.split(",")));
         ctx.set(FlowContext.PROFILE, interests);
     }
+
+    @Override
+    public java.util.Set<String> imports() {
+        return java.util.Set.of();
+    }
+
+    @Override
+    public java.util.Set<String> exports() {
+        return java.util.Set.of(FlowContext.PROFILE);
+    }
 }

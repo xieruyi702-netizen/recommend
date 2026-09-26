@@ -31,4 +31,14 @@ public class RecallCfOperator extends AbstractRecommendOperator {
             ctx.set(FlowContext.RECALL_CF, List.of());
         }
     }
+
+    @Override
+    public java.util.Set<String> imports() {
+        return java.util.Set.of();
+    }
+
+    @Override
+    public java.util.Set<String> exports() {
+        return java.util.Set.of(FlowContext.RECALL_CF);
+    }
 }

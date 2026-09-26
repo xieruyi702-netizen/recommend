@@ -26,4 +26,14 @@ public class FavoriteFilterOperator extends AbstractRecommendOperator {
                 .toList();
         ctx.set(FlowContext.FILTERED, filtered);
     }
+
+    @Override
+    public java.util.Set<String> imports() {
+        return java.util.Set.of(FlowContext.CANDIDATES);
+    }
+
+    @Override
+    public java.util.Set<String> exports() {
+        return java.util.Set.of(FlowContext.FILTERED);
+    }
 }

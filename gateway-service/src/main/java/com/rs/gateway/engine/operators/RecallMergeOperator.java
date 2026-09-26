@@ -26,4 +26,14 @@ public class RecallMergeOperator extends AbstractRecommendOperator {
         }
         ctx.set(FlowContext.CANDIDATES, List.copyOf(merged.values()));
     }
+
+    @Override
+    public java.util.Set<String> imports() {
+        return java.util.Set.of(FlowContext.RECALL_HOT, FlowContext.RECALL_TAG, FlowContext.RECALL_CF);
+    }
+
+    @Override
+    public java.util.Set<String> exports() {
+        return java.util.Set.of(FlowContext.CANDIDATES);
+    }
 }

@@ -17,6 +17,7 @@ public class FlowContext {
     public static final String COARSED = "coarsed";         // 粗排结果
     public static final String RANKED = "ranked";           // 精排结果
     public static final String RESULT = "result";           // 重排结果（最终输出）
+    public static final String METRICS_WRITTEN = "metricsWritten"; // 漏斗指标已写入（契约标记）
     public static final String PROFILE = "profile";         // 用户兴趣标签
     public static final String FILTERED = "filtered";       // 收藏过滤后的候选
     public static final String BOOSTED = "boosted";         // 兴趣加权重排后的列表

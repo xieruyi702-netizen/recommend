@@ -55,7 +55,34 @@ public class DagFlow {
                 flow.dependencies.get(name).add(dep.asText());
             }
         }
-        // 边指向的节点也必须存在
+
+        // 数据契约校验：特征的生产者必须唯一
+        Map<String, String> producerOf = new LinkedHashMap<>();
+        for (var e : flow.nodes().entrySet()) {
+            for (String feature : e.getValue().exports()) {
+                String prev = producerOf.putIfAbsent(feature, e.getKey());
+                if (prev != null) {
+                    throw new IllegalArgumentException("特征[" + feature + "]被[" + prev + "]与[" + e.getKey()
+                            + "]重复产出，请用不同 version/group 区分或重命名特征");
+                }
+            }
+        }
+
+        // 依赖边自动推导：算子 import 的特征，由产出该特征的算子提供依赖边
+        for (var e : flow.nodes().entrySet()) {
+            for (String feature : e.getValue().imports()) {
+                String producer = producerOf.get(feature);
+                if (producer == null) {
+                    throw new IllegalArgumentException("算子[" + e.getKey() + "] import 的特征[" + feature
+                            + "]没有任何节点产出");
+                }
+                if (!producer.equals(e.getKey()) && flow.nodes().containsKey(producer)) {
+                    flow.dependencies.get(e.getKey()).add(producer);
+                }
+            }
+        }
+
+        // 显式 dependsOn 的节点也必须存在
         for (var e : flow.dependencies.entrySet()) {
             for (String dep : e.getValue()) {
                 if (!flow.nodes.containsKey(dep)) {
@@ -63,7 +90,7 @@ public class DagFlow {
                 }
             }
         }
-        flow.validate();   // 加载即检环，坏图尽早失败
+        flow.validate();   // 三色标记法检环，坏图尽早失败
         return flow;
     }
 

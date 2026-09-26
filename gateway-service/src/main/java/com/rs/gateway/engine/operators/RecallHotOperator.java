@@ -31,4 +31,14 @@ public class RecallHotOperator extends AbstractRecommendOperator {
             ctx.set(FlowContext.RECALL_HOT, List.of());
         }
     }
+
+    @Override
+    public java.util.Set<String> imports() {
+        return java.util.Set.of();
+    }
+
+    @Override
+    public java.util.Set<String> exports() {
+        return java.util.Set.of(FlowContext.RECALL_HOT);
+    }
 }

@@ -20,4 +20,14 @@ public class CoarseRankOperator extends AbstractRecommendOperator {
     protected void doExecute(FlowContext ctx) {
         ctx.set(FlowContext.COARSED, coarseRankService.coarseRank(ctx.getUserId(), ctx.itemList(FlowContext.FILTERED), 50));
     }
+
+    @Override
+    public java.util.Set<String> imports() {
+        return java.util.Set.of(FlowContext.FILTERED);
+    }
+
+    @Override
+    public java.util.Set<String> exports() {
+        return java.util.Set.of(FlowContext.COARSED);
+    }
 }

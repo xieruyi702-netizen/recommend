@@ -33,4 +33,14 @@ public class InterestBoostOperator extends AbstractRecommendOperator {
                 i -> i.tagSet().stream().anyMatch(interests::contains) ? 0 : 1));  // 稳定排序：命中者前移
         ctx.set(FlowContext.BOOSTED, boosted);
     }
+
+    @Override
+    public java.util.Set<String> imports() {
+        return java.util.Set.of(FlowContext.RANKED, FlowContext.PROFILE);
+    }
+
+    @Override
+    public java.util.Set<String> exports() {
+        return java.util.Set.of(FlowContext.BOOSTED);
+    }
 }

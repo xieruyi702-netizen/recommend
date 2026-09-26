@@ -31,4 +31,14 @@ public class RecallTagOperator extends AbstractRecommendOperator {
             ctx.set(FlowContext.RECALL_TAG, List.of());
         }
     }
+
+    @Override
+    public java.util.Set<String> imports() {
+        return java.util.Set.of();
+    }
+
+    @Override
+    public java.util.Set<String> exports() {
+        return java.util.Set.of(FlowContext.RECALL_TAG);
+    }
 }

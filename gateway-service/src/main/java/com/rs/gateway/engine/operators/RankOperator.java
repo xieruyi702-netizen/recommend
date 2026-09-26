@@ -20,4 +20,14 @@ public class RankOperator extends AbstractRecommendOperator {
     protected void doExecute(FlowContext ctx) {
         ctx.set(FlowContext.RANKED, rankService.rank(ctx.getUserId(), ctx.itemList(FlowContext.COARSED), 20));
     }
+
+    @Override
+    public java.util.Set<String> imports() {
+        return java.util.Set.of(FlowContext.COARSED);
+    }
+
+    @Override
+    public java.util.Set<String> exports() {
+        return java.util.Set.of(FlowContext.RANKED);
+    }
 }
