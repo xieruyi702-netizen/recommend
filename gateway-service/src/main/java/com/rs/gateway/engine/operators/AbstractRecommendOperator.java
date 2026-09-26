@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractRecommendOperator implements Operator {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final String name;
+    protected final String name;
 
     protected AbstractRecommendOperator(String name) {
         this.name = name;

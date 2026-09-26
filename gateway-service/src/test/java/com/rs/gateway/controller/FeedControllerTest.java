@@ -74,6 +74,13 @@ class FeedControllerTest {
     private FeedController controller() throws Exception {
         RecallOperator recall = new RecallOperator();
         inject(recall, "recallService", recallService);
+        com.rs.gateway.engine.operators.RecallHotOperator recallHot = new com.rs.gateway.engine.operators.RecallHotOperator();
+        inject(recallHot, "recallService", recallService);
+        com.rs.gateway.engine.operators.RecallTagOperator recallTag = new com.rs.gateway.engine.operators.RecallTagOperator();
+        inject(recallTag, "recallService", recallService);
+        com.rs.gateway.engine.operators.RecallCfOperator recallCf = new com.rs.gateway.engine.operators.RecallCfOperator();
+        inject(recallCf, "recallService", recallService);
+        com.rs.gateway.engine.operators.RecallMergeOperator recallMerge = new com.rs.gateway.engine.operators.RecallMergeOperator();
         ProfileOperator profile = new ProfileOperator(userMapper);
         FavoriteFilterOperator favFilter = new FavoriteFilterOperator(favoriteMapper);
         CoarseRankOperator coarse = new CoarseRankOperator();
@@ -85,15 +92,23 @@ class FeedControllerTest {
         RerankOperator rerank = new RerankOperator();
         inject(rerank, "rerankService", rerankService);
 
-        var registry = new SceneFlowRegistry(List.of(recall, profile, favFilter, coarse,
-                rank, boost, metrics, rerank), Executors.newFixedThreadPool(4),
-                new org.springframework.core.io.DefaultResourceLoader(), "classpath:flows/flows.json");
+        var registry = new SceneFlowRegistry(
+                List.of(recall, recallHot, recallTag, recallCf, recallMerge,
+                        profile, favFilter, coarse, rank, boost, metrics, rerank),
+                Executors.newFixedThreadPool(4),
+                new org.springframework.core.io.DefaultResourceLoader(),
+                "classpath:flows/flows.json");
         return new FeedController(registry, Executors.newFixedThreadPool(4));
     }
 
     private void stubBase() {
         when(recallService.recall(anyLong(), eq(100)))
                 .thenReturn(List.of(item(1, "科技"), item(2, "体育"), item(3, "财经")));
+        when(recallService.recallHot(anyLong(), eq(100)))
+                .thenReturn(List.of(item(1, "科技"), item(2, "体育")));
+        when(recallService.recallByTag(anyLong(), eq(100)))
+                .thenReturn(List.of(item(3, "财经")));
+        when(recallService.recallItemCf(anyLong(), eq(100))).thenReturn(List.of());
         when(userMapper.selectInterestTags(9L)).thenReturn("科技");
         when(favoriteMapper.selectItemIdsByUserId(9L)).thenReturn(List.of(2L));
         when(coarseRankService.coarseRank(anyLong(), anyList(), eq(50)))
@@ -113,7 +128,10 @@ class FeedControllerTest {
 
         // 召回 3 条，已收藏 item=2 被过滤 → 最终 2 条
         assertEquals(2, out.size());
-        verify(recallService).recall(9L, 100);
+        verify(recallService, never()).recall(anyLong(), anyInt());   // home 走三路并行召回
+        verify(recallService).recallHot(9L, 100);
+        verify(recallService).recallByTag(9L, 100);
+        verify(recallService).recallItemCf(9L, 100);
         verify(userMapper).selectInterestTags(9L);
         verify(favoriteMapper).selectItemIdsByUserId(9L);
         var captor = ArgumentCaptor.forClass((Class<List<ItemDTO>>) (Class<?>) List.class);

@@ -28,9 +28,9 @@ public class RecallServiceImpl implements RecallService {
 
     @Override
     public List<ItemDTO> recall(long userId, int size) {
-        var byHot = CompletableFuture.supplyAsync(() -> recallByHot(size));
+        var byHot = CompletableFuture.supplyAsync(() -> recallHot(userId, size));
         var byTag = CompletableFuture.supplyAsync(() -> recallByTag(userId, size));
-        var byItemCF = CompletableFuture.supplyAsync(() -> recallByItemCF(userId, size));
+        var byItemCF = CompletableFuture.supplyAsync(() -> recallItemCf(userId, size));
 
         CompletableFuture.allOf(byHot, byTag, byItemCF).join();
 
@@ -44,7 +44,8 @@ public class RecallServiceImpl implements RecallService {
     }
 
     /** 热度召回：优先取 Redis ZSet 实时热度榜，未预热时回源 MySQL 并回填 */
-    private List<ItemDTO> recallByHot(int size) {
+    @Override
+    public List<ItemDTO> recallHot(long userId, int size) {
         Set<String> ids = redis.opsForZSet().reverseRange("hot:rank", 0, size - 1);
         if (ids != null && !ids.isEmpty()) {
             return loadItems(ids.stream().map(Long::parseLong).toList(), "hot");
@@ -58,7 +59,8 @@ public class RecallServiceImpl implements RecallService {
     }
 
     /** 标签召回：用户兴趣标签 LIKE 匹配物料 */
-    private List<ItemDTO> recallByTag(long userId, int size) {
+    @Override
+    public List<ItemDTO> recallByTag(long userId, int size) {
         String tags = recallMapper.selectInterestTags(userId);
         if (tags == null || tags.isBlank()) return List.of();
         List<String> tagList = splitTags(tags);
@@ -67,7 +69,8 @@ public class RecallServiceImpl implements RecallService {
     }
 
     /** 简化 ItemCF：取用户最近点击的物料，召回与它们标签相同的其他物料 */
-    private List<ItemDTO> recallByItemCF(long userId, int size) {
+    @Override
+    public List<ItemDTO> recallItemCf(long userId, int size) {
         List<String> clickedTags = recallMapper.selectClickedTags(userId, 5);
         if (clickedTags.isEmpty()) return List.of();
         // 每条记录本身是逗号分隔的多标签，拍平成单标签列表（OR LIKE 语义不变）

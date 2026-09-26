@@ -10,7 +10,10 @@ import java.util.concurrent.ConcurrentHashMap;
 /** 推荐流上下文：算子之间通过 key 传递中间结果（并发安全，DAG 并行算子共享同一 ctx） */
 public class FlowContext {
 
-    public static final String CANDIDATES = "candidates";   // 召回结果
+    public static final String CANDIDATES = "candidates";   // 召回结果（合并后）
+    public static final String RECALL_HOT = "recallHot";     // 热度路召回
+    public static final String RECALL_TAG = "recallTag";     // 标签路召回
+    public static final String RECALL_CF = "recallCf";       // ItemCF 路召回
     public static final String COARSED = "coarsed";         // 粗排结果
     public static final String RANKED = "ranked";           // 精排结果
     public static final String RESULT = "result";           // 重排结果（最终输出）
