@@ -15,7 +15,8 @@ public class DagExecutor {
     }
 
     public static FlowContext execute(DagFlow flow, FlowContext ctx, ExecutorService pool) {
-        List<List<String>> levels = flow.levels();
+        flow.validate();                          // 三色标记法检环
+        List<List<String>> levels = flow.kahnLevels();   // Kahn 分层拓扑
         Map<String, Throwable> failures = new HashMap<>();
         for (List<String> level : levels) {
             List<Future<?>> futures = new ArrayList<>();
