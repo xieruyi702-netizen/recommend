@@ -5,6 +5,7 @@ import com.rs.api.ItemDTO;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** 推荐流上下文：算子之间通过 key 传递中间结果（并发安全，DAG 并行算子共享同一 ctx） */
@@ -25,10 +26,37 @@ public class FlowContext {
     private final long userId;
     private final int size;
     private final Map<String, Object> attributes = new ConcurrentHashMap<>();
+    private final Map<String, Long> opCostMs = new ConcurrentHashMap<>();     // 算子耗时 trace
+    private final Set<String> degradedOps = ConcurrentHashMap.newKeySet();   // 降级/跳过的算子
+    private final long startNanos = System.nanoTime();
 
     public FlowContext(long userId, int size) {
         this.userId = userId;
         this.size = size;
+    }
+
+    /** 引擎整体预算：超预算后剩余非关键算子将被跳过（降级） */
+    public long elapsedMs() {
+        return (System.nanoTime() - startNanos) / 1_000_000;
+    }
+
+    public void recordOp(String name, long costMs, boolean degraded) {
+        opCostMs.put(name, costMs);
+        if (degraded) degradedOps.add(name);
+    }
+
+    /** 算子耗时 trace（算子名 → 毫秒），debug 接口透出 */
+    public Map<String, Long> opTrace() {
+        return Map.copyOf(opCostMs);
+    }
+
+    /** 发生降级/被跳过的算子 */
+    public Set<String> degradedOps() {
+        return Set.copyOf(degradedOps);
+    }
+
+    public void degradedOpsAdd(String name) {
+        degradedOps.add(name);
     }
 
     public long getUserId() { return userId; }

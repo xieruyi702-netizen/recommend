@@ -19,4 +19,17 @@ public interface Operator {
     default Set<String> exports() {
         return Set.of();
     }
+
+    /** 算子超时（毫秒）：超时视为失败，走降级（下游用回退链兜底） */
+    default long timeoutMs() {
+        return 800;
+    }
+
+    /**
+     * 是否关键算子：critical=false（默认）失败/超时只降级，链路继续；
+     * critical=true 失败则终止整条链路。
+     */
+    default boolean critical() {
+        return false;
+    }
 }

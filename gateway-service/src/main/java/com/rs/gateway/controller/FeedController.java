@@ -33,13 +33,20 @@ public class FeedController {
      * mode:  pipeline（组序列流水线，默认）| dag（依赖图拓扑并行）
      */
     @GetMapping("/recommend")
-    public List<ItemDTO> recommend(@RequestParam long userId,
-                                   @RequestParam(defaultValue = "10") int size,
-                                   @RequestParam(defaultValue = "home") String scene,
-                                   @RequestParam(defaultValue = "pipeline") String mode) {
+    public Object recommend(@RequestParam long userId,
+                            @RequestParam(defaultValue = "10") int size,
+                            @RequestParam(defaultValue = "home") String scene,
+                            @RequestParam(defaultValue = "pipeline") String mode,
+                            @RequestParam(defaultValue = "false") boolean debug) {
         FlowContext ctx = new FlowContext(userId, size);
         execute(Scene.fromCode(scene), mode, ctx);
-        return ctx.itemList(FlowContext.RESULT);
+        List<ItemDTO> items = ctx.itemList(FlowContext.RESULT);
+        if (!debug) return items;
+        return java.util.Map.of(
+                "items", items,
+                "traceMs", ctx.opTrace(),                  // 各算子耗时
+                "degraded", ctx.degradedOps(),             // 降级/超时/跳过的算子
+                "elapsedMs", ctx.elapsedMs());             // 整链耗时
     }
 
     /** 重载场景流配置（改编排不发版） */

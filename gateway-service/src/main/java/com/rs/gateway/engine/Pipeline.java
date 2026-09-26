@@ -17,7 +17,15 @@ public class Pipeline {
 
     public FlowContext execute(FlowContext ctx) {
         for (Operator op : operators) {
-            op.execute(ctx);
+            long start = System.nanoTime();
+            boolean degraded = false;
+            try {
+                op.execute(ctx);
+            } catch (RuntimeException e) {
+                if (op.critical()) throw e;
+                degraded = true;   // 非关键失败：降级继续，下游用回退链兜底
+            }
+            ctx.recordOp(op.name(), (System.nanoTime() - start) / 1_000_000, degraded);
         }
         return ctx;
     }
