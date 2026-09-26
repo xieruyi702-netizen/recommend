@@ -37,4 +37,14 @@ public class FlowContext {
 
     @SuppressWarnings("unchecked")
     public List<ItemDTO> itemList(String key) { return (List<ItemDTO>) attributes.getOrDefault(key, List.of()); }
+
+    /** 沿特征链取第一个非空列表（适配不同场景下算子组合的差异） */
+    @SafeVarargs
+    public final List<ItemDTO> firstNonEmptyList(String... keys) {
+        for (String key : keys) {
+            List<ItemDTO> v = itemList(key);
+            if (!v.isEmpty()) return v;
+        }
+        return List.of();
+    }
 }

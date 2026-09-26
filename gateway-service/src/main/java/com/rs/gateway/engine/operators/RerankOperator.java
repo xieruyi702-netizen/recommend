@@ -1,7 +1,10 @@
 package com.rs.gateway.engine.operators;
 
+import com.rs.api.ItemDTO;
 import com.rs.gateway.engine.FlowContext;
 import com.rs.rerank.api.RerankService;
+
+import java.util.List;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +21,9 @@ public class RerankOperator extends AbstractRecommendOperator {
 
     @Override
     protected void doExecute(FlowContext ctx) {
-        ctx.set(FlowContext.RESULT, rerankService.rerank(ctx.getUserId(), ctx.itemList(FlowContext.BOOSTED), ctx.getSize()));
+        // 输入沿特征链回退：boost 过的 → 精排的 → 过滤的 → 原始候选（适配不同场景的算子组合）
+        List<ItemDTO> input = ctx.firstNonEmptyList(
+                FlowContext.BOOSTED, FlowContext.RANKED, FlowContext.FILTERED, FlowContext.CANDIDATES);
+        ctx.set(FlowContext.RESULT, rerankService.rerank(ctx.getUserId(), input, ctx.getSize()));
     }
 }
