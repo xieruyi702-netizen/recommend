@@ -68,8 +68,6 @@ services:
   gateway-service:
     build: { context: ., dockerfile: gateway-service/Dockerfile }
     container_name: rs-gateway
-    volumes:
-      - ./music-files:/data/music
     environment: &java-env
       MYSQL_HOST: mysql
       # SMTP（QQ邮箱）：export SMTP_USERNAME=xxx@qq.com SMTP_PASSWORD=授权码 后 up -d 生效；留空=验证码打印日志的模拟模式
@@ -125,6 +123,8 @@ services:
   behavior-consumer:
     build: { context: ., dockerfile: behavior-consumer/Dockerfile }
     container_name: rs-consumer
+    ports:
+      - "9105:9105"
     volumes:
       - ./music-files:/data/music
     environment:
@@ -135,16 +135,6 @@ services:
       redis: { condition: service_healthy }
       kafka: { condition: service_healthy }
       nacos: { condition: service_healthy }
-
-  frontend:
-    build: { context: ./frontend }
-    container_name: rs-frontend
-    volumes:
-      - ./music-files:/data/music:ro
-    ports:
-      - "80:80"
-    depends_on:
-      - gateway-service
 
 volumes:
   mysql-data:
