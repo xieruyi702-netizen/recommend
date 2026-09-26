@@ -1,5 +1,6 @@
 package com.rs.gateway.engine.operators;
 
+import com.rs.api.ItemDTO;
 import com.rs.gateway.engine.FlowContext;
 import com.rs.recall.api.RecallService;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -8,10 +9,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.function.BiFunction;
 
-/** 标签 召回通道：失败降级为空列表——单路故障不影响整体出结果（故障隔离） */
+/** 标签召回通道：失败降级为空列表（通用逻辑在父类 AbstractRecallChannelOperator） */
 @Component
-public class RecallTagOperator extends AbstractRecommendOperator {
+public class RecallTagOperator extends AbstractRecallChannelOperator {
 
     private static final Logger log = LoggerFactory.getLogger(RecallTagOperator.class);
 
@@ -23,22 +25,17 @@ public class RecallTagOperator extends AbstractRecommendOperator {
     }
 
     @Override
-    protected void doExecute(FlowContext ctx) {
-        try {
-            ctx.set(FlowContext.RECALL_TAG, recallService.recallByTag(ctx.getUserId(), 100));
-        } catch (Exception e) {
-            log.warn("召回通道[{}]失败，降级为空: {}", name, e.getMessage());
-            ctx.set(FlowContext.RECALL_TAG, List.of());
-        }
+    protected BiFunction<Long, Integer, List<ItemDTO>> channel() {
+        return recallService::recallByTag;
     }
 
     @Override
-    public java.util.Set<String> imports() {
-        return java.util.Set.of();
+    protected String exportKey() {
+        return FlowContext.RECALL_TAG;
     }
 
     @Override
-    public java.util.Set<String> exports() {
-        return java.util.Set.of(FlowContext.RECALL_TAG);
+    protected Logger logger() {
+        return log;
     }
 }

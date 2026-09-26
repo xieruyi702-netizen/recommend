@@ -1,5 +1,6 @@
 package com.rs.gateway.engine.operators;
 
+import com.rs.api.ItemDTO;
 import com.rs.gateway.engine.FlowContext;
 import com.rs.recall.api.RecallService;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -8,10 +9,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.function.BiFunction;
 
-/** ItemCF 召回通道：失败降级为空列表——单路故障不影响整体出结果（故障隔离） */
+/** ItemCF召回通道：失败降级为空列表（通用逻辑在父类 AbstractRecallChannelOperator） */
 @Component
-public class RecallCfOperator extends AbstractRecommendOperator {
+public class RecallCfOperator extends AbstractRecallChannelOperator {
 
     private static final Logger log = LoggerFactory.getLogger(RecallCfOperator.class);
 
@@ -23,22 +25,17 @@ public class RecallCfOperator extends AbstractRecommendOperator {
     }
 
     @Override
-    protected void doExecute(FlowContext ctx) {
-        try {
-            ctx.set(FlowContext.RECALL_CF, recallService.recallItemCf(ctx.getUserId(), 100));
-        } catch (Exception e) {
-            log.warn("召回通道[{}]失败，降级为空: {}", name, e.getMessage());
-            ctx.set(FlowContext.RECALL_CF, List.of());
-        }
+    protected BiFunction<Long, Integer, List<ItemDTO>> channel() {
+        return recallService::recallItemCf;
     }
 
     @Override
-    public java.util.Set<String> imports() {
-        return java.util.Set.of();
+    protected String exportKey() {
+        return FlowContext.RECALL_CF;
     }
 
     @Override
-    public java.util.Set<String> exports() {
-        return java.util.Set.of(FlowContext.RECALL_CF);
+    protected Logger logger() {
+        return log;
     }
 }
