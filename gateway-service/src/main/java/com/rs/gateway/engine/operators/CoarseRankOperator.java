@@ -18,7 +18,9 @@ public class CoarseRankOperator extends AbstractRecommendOperator {
 
     @Override
     protected void doExecute(FlowContext ctx) {
-        ctx.set(FlowContext.COARSED, coarseRankService.coarseRank(ctx.getUserId(), ctx.itemList(FlowContext.FILTERED), 50));
+                // 轻量场景无 favFilter 时回退原始候选
+        ctx.set(FlowContext.COARSED, coarseRankService.coarseRank(ctx.getUserId(),
+                ctx.firstNonEmptyList(FlowContext.FILTERED, FlowContext.CANDIDATES), 50));
     }
 
     @Override

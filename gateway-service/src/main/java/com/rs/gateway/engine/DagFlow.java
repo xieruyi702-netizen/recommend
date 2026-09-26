@@ -17,6 +17,8 @@ import java.util.LinkedHashSet;
 /** DAG 定义：节点（算子）+ 依赖边；支持 JSON 加载、三色标记法环检测、Kahn 分层拓扑 */
 public class DagFlow {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DagFlow.class);
+
     private final Map<String, Operator> nodes = new LinkedHashMap<>();
     private final Map<String, Set<String>> dependencies = new LinkedHashMap<>();
 
@@ -73,8 +75,9 @@ public class DagFlow {
             for (String feature : e.getValue().imports()) {
                 String producer = producerOf.get(feature);
                 if (producer == null) {
-                    throw new IllegalArgumentException("算子[" + e.getKey() + "] import 的特征[" + feature
-                            + "]没有任何节点产出");
+                    // 该图内无人产出此特征（场景精简了上游算子）：算子需自带回退链，不视为配置错误
+                    log.warn("算子[{}] import 的特征[{}]在当前图中没有生产者，算子需自行处理缺失", e.getKey(), feature);
+                    continue;
                 }
                 if (!producer.equals(e.getKey()) && flow.nodes().containsKey(producer)) {
                     flow.dependencies.get(e.getKey()).add(producer);

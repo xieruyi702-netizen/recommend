@@ -3,96 +3,63 @@
     "dag": [
       {
         "name": "recallHot",
-        "imports": [],
-        "exports": [
-          "recallHot"
-        ]
+        "dependsOn": []
       },
       {
         "name": "recallTag",
-        "imports": [],
-        "exports": [
-          "recallTag"
-        ]
+        "dependsOn": []
       },
       {
         "name": "recallCf",
-        "imports": [],
-        "exports": [
-          "recallCf"
-        ]
+        "dependsOn": []
       },
       {
         "name": "recallMerge",
-        "imports": [
+        "dependsOn": [
           "recallHot",
           "recallTag",
           "recallCf"
-        ],
-        "exports": [
-          "candidates"
         ]
       },
       {
         "name": "profile",
-        "imports": [],
-        "exports": [
-          "profile"
-        ]
+        "dependsOn": []
       },
       {
         "name": "favFilter",
-        "imports": [
-          "candidates"
-        ],
-        "exports": [
-          "filtered"
+        "dependsOn": [
+          "recallMerge"
         ]
       },
       {
         "name": "coarseRank",
-        "imports": [
-          "filtered"
-        ],
-        "exports": [
-          "coarsed"
+        "dependsOn": [
+          "favFilter"
         ]
       },
       {
         "name": "rank",
-        "imports": [
-          "coarsed"
-        ],
-        "exports": [
-          "ranked"
+        "dependsOn": [
+          "coarseRank"
         ]
       },
       {
         "name": "boost",
-        "imports": [
-          "ranked",
+        "dependsOn": [
+          "rank",
           "profile"
-        ],
-        "exports": [
-          "boosted"
         ]
       },
       {
         "name": "metrics",
-        "imports": [
-          "ranked"
-        ],
-        "exports": [
-          "metricsWritten"
+        "dependsOn": [
+          "rank"
         ]
       },
       {
         "name": "rerank",
-        "imports": [
-          "boosted"
-        ],
-        "exports": [
-          "result"
+        "dependsOn": [
+          "boost"
         ]
       }
     ],
@@ -208,27 +175,18 @@
     "dag": [
       {
         "name": "recall",
-        "imports": [],
-        "exports": [
-          "candidates"
-        ]
+        "dependsOn": []
       },
       {
         "name": "coarseRank",
-        "imports": [
-          "candidates"
-        ],
-        "exports": [
-          "coarsed"
+        "dependsOn": [
+          "recall"
         ]
       },
       {
         "name": "rerank",
-        "imports": [
-          "coarsed"
-        ],
-        "exports": [
-          "result"
+        "dependsOn": [
+          "coarseRank"
         ]
       }
     ],
@@ -267,54 +225,36 @@
     "dag": [
       {
         "name": "recall",
-        "imports": [],
-        "exports": [
-          "candidates"
-        ]
+        "dependsOn": []
       },
       {
         "name": "favFilter",
-        "imports": [
-          "candidates"
-        ],
-        "exports": [
-          "filtered"
+        "dependsOn": [
+          "recall"
         ]
       },
       {
         "name": "coarseRank",
-        "imports": [
-          "filtered"
-        ],
-        "exports": [
-          "coarsed"
+        "dependsOn": [
+          "favFilter"
         ]
       },
       {
         "name": "rank",
-        "imports": [
-          "coarsed"
-        ],
-        "exports": [
-          "ranked"
+        "dependsOn": [
+          "coarseRank"
         ]
       },
       {
         "name": "metrics",
-        "imports": [
-          "ranked"
-        ],
-        "exports": [
-          "metricsWritten"
+        "dependsOn": [
+          "rank"
         ]
       },
       {
         "name": "rerank",
-        "imports": [
-          "ranked"
-        ],
-        "exports": [
-          "result"
+        "dependsOn": [
+          "metrics"
         ]
       }
     ],

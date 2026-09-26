@@ -54,6 +54,23 @@ class DagFlowTest {
         assertThrows(IllegalStateException.class, cyclic::kahnLevels);
     }
 
+    private Operator exporting(String name, String feature) {
+        return new Operator() {
+            @Override public String name() { return name; }
+            @Override public void execute(FlowContext ctx) { }
+            @Override public java.util.Set<String> exports() { return java.util.Set.of(feature); }
+        };
+    }
+
+    private Operator importing(String name, String feature, String export) {
+        return new Operator() {
+            @Override public String name() { return name; }
+            @Override public void execute(FlowContext ctx) { }
+            @Override public java.util.Set<String> imports() { return java.util.Set.of(feature); }
+            @Override public java.util.Set<String> exports() { return java.util.Set.of(export); }
+        };
+    }
+
     @Test
     void loadShouldDeriveEdgesFromImportsAndExports() throws Exception {
         String json = """
@@ -63,18 +80,42 @@ class DagFlowTest {
                 ]
                 """;
         Map<String, Operator> registry = Map.of(
-                "recall", op("recall"), "coarse", op("coarse"));
+                "recall", exporting("recall", "candidates"),
+                "coarse", importing("coarse", "candidates", "coarsed"));
 
         DagFlow flow = DagFlow.load(json, registry);
 
         // 依赖边由 imports/exports 自动推导：coarse 依赖 recall
         assertEquals(List.of("recall"), flow.kahnLevels().get(0));
         assertEquals(List.of("coarse"), flow.kahnLevels().get(1));
+    }
 
-        // 消费的特征无人产出 → 明确报错
-        var e = assertThrows(IllegalArgumentException.class,
-                () -> DagFlow.load(json, Map.of("coarse", op("coarse"))));
-        assertTrue(e.getMessage().contains("candidates"));
+    @Test
+    void loadShouldTolerateImportWithoutProducer() throws Exception {
+        // 场景精简（轻量链路）时 import 允许无生产者：算子需自带回退链，加载只告警不失败
+        String json = """
+                [
+                  {"name": "coarse",  "imports": ["filtered"], "exports": ["coarsed"]}
+                ]
+                """;
+        Map<String, Operator> registry = Map.of(
+                "coarse", importing("coarse", "filtered", "coarsed"));
+
+        assertDoesNotThrow(() -> DagFlow.load(json, registry));
+    }
+
+    @Test
+    void missingProducerShouldWarnButNotFail() {
+        // 场景精简（如轻量链路无画像算子）时，import 允许无生产者——算子需自行回退
+        String json = """
+                [
+                  {"name": "recall", "imports": [], "exports": ["candidates"]},
+                  {"name": "coarse", "imports": ["filtered"], "exports": ["coarsed"]}
+                ]
+                """;
+        Map<String, Operator> registry = Map.of("recall", op("recall"), "coarse", op("coarse"));
+
+        assertDoesNotThrow(() -> DagFlow.load(json, registry));
     }
 
     @Test
