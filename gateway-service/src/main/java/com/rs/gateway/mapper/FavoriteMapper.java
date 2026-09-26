@@ -14,4 +14,7 @@ public interface FavoriteMapper {
     int delete(@Param("userId") long userId, @Param("itemId") long itemId);
 
     List<Item> selectByUserId(@Param("userId") long userId);
+
+    /** 用户已收藏的 item id 集合（推荐去重用） */
+    java.util.List<Long> selectItemIdsByUserId(@Param("userId") long userId);
 }

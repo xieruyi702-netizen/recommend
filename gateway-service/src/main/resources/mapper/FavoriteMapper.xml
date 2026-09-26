@@ -10,6 +10,10 @@
         DELETE FROM favorites WHERE user_id = #{userId} AND item_id = #{itemId}
     </delete>
 
+    <select id="selectItemIdsByUserId" resultType="long">
+        SELECT item_id FROM favorites WHERE user_id = #{userId}
+    </select>
+
     <select id="selectByUserId" resultType="Item">
         SELECT i.id, i.title, i.tags, i.author, i.hot_score, i.ctr, i.publish_time, i.url, i.summary
         FROM favorites f JOIN items i ON f.item_id = i.id

@@ -13,6 +13,8 @@ public interface UserMapper {
 
     User findById(@Param("id") Long id);
 
+    String selectInterestTags(@Param("id") long id);
+
     /** 账号（用户名或邮箱）查用户，密码校验交给 PasswordEncoder */
     User findByAccount(@Param("account") String account);
 

@@ -10,6 +10,10 @@
         SELECT id, username, interest_tags FROM users WHERE email = #{email}
     </select>
 
+    <select id="selectInterestTags" resultType="string">
+        SELECT IFNULL(interest_tags, '') FROM users WHERE id = #{id}
+    </select>
+
     <select id="findById" resultType="User">
         SELECT id, username, interest_tags FROM users WHERE id = #{id}
     </select>

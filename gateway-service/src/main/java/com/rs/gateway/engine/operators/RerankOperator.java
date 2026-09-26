@@ -18,6 +18,6 @@ public class RerankOperator extends AbstractRecommendOperator {
 
     @Override
     protected void doExecute(FlowContext ctx) {
-        ctx.set(FlowContext.RESULT, rerankService.rerank(ctx.getUserId(), ctx.itemList(FlowContext.RANKED), ctx.getSize()));
+        ctx.set(FlowContext.RESULT, rerankService.rerank(ctx.getUserId(), ctx.itemList(FlowContext.BOOSTED), ctx.getSize()));
     }
 }

@@ -1,6 +1,10 @@
 package com.rs.gateway.engine;
 
 import com.rs.gateway.engine.operators.CoarseRankOperator;
+import com.rs.gateway.engine.operators.FavoriteFilterOperator;
+import com.rs.gateway.engine.operators.InterestBoostOperator;
+import com.rs.gateway.engine.operators.MetricsOperator;
+import com.rs.gateway.engine.operators.ProfileOperator;
 import com.rs.gateway.engine.operators.RankOperator;
 import com.rs.gateway.engine.operators.RecallOperator;
 import com.rs.gateway.engine.operators.RerankOperator;
@@ -11,31 +15,44 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** 组装两种推荐执行架构 */
+/**
+ * 组装两种推荐执行架构（8 算子）：
+ *
+ * Pipeline：recall → profile → favFilter → coarse → rank → boost → metrics → rerank（严格串行）
+ *
+ * DAG：recall ─┬─→ favFilter ─→ coarse ─→ rank ─┬─→ boost ─→ rerank
+ *       profile ┘                              └─→ metrics
+ * （recall 与 profile 并行；boost 与 metrics 并行——DAG 的并行收益来自这里）
+ */
 @Configuration
 public class FlowConfig {
 
-    /** DAG 并行执行线程池 */
     @Bean(destroyMethod = "shutdown")
     public ExecutorService dagExecutor() {
         return Executors.newFixedThreadPool(8);
     }
 
-    /** Pipeline：召回 → 粗排 → 精排 → 重排，严格顺序 */
     @Bean
-    public Pipeline pipeline(RecallOperator recall, CoarseRankOperator coarse,
-                             RankOperator rank, RerankOperator rerank) {
-        return new Pipeline(List.of(recall, coarse, rank, rerank));
+    public Pipeline pipeline(RecallOperator recall, ProfileOperator profile,
+                             FavoriteFilterOperator favFilter, CoarseRankOperator coarse,
+                             RankOperator rank, InterestBoostOperator boost,
+                             MetricsOperator metrics, RerankOperator rerank) {
+        return new Pipeline(List.of(recall, profile, favFilter, coarse, rank, boost, metrics, rerank));
     }
 
-    /** DAG：同样的漏斗节点 + 依赖边（当前链路是线性的；未来出现可并行算子时只需加节点和边） */
     @Bean
-    public DagFlow dagFlow(RecallOperator recall, CoarseRankOperator coarse,
-                           RankOperator rank, RerankOperator rerank) {
+    public DagFlow dagFlow(RecallOperator recall, ProfileOperator profile,
+                           FavoriteFilterOperator favFilter, CoarseRankOperator coarse,
+                           RankOperator rank, InterestBoostOperator boost,
+                           MetricsOperator metrics, RerankOperator rerank) {
         return new DagFlow()
                 .node("recall", recall)
-                .node("coarseRank", coarse).dependsOn("coarseRank", "recall")
+                .node("profile", profile)
+                .node("favFilter", favFilter).dependsOn("favFilter", "recall")
+                .node("coarseRank", coarse).dependsOn("coarseRank", "favFilter")
                 .node("rank", rank).dependsOn("rank", "coarseRank")
-                .node("rerank", rerank).dependsOn("rerank", "rank");
+                .node("boost", boost).dependsOn("boost", "rank", "profile")
+                .node("metrics", metrics).dependsOn("metrics", "rank")
+                .node("rerank", rerank).dependsOn("rerank", "boost");
     }
 }
