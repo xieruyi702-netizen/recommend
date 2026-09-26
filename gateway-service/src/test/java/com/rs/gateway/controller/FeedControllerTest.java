@@ -189,10 +189,16 @@ class FeedControllerTest {
     void reloadShouldSwapFlowsDynamically(@org.junit.jupiter.api.io.TempDir java.nio.file.Path tmp) throws Exception {
         var file = tmp.resolve("flows.json");
         java.nio.file.Files.writeString(file, """
-                {"related": {"graph": [
-                    {"name": "recall", "dependsOn": []},
-                    {"name": "rerank", "dependsOn": ["recall"]}
-                ]}}
+                {"related": {
+                    "dag": [
+                        {"name": "recall", "dependsOn": []},
+                        {"name": "rerank", "dependsOn": ["recall"]}
+                    ],
+                    "pipeline": [
+                        {"name": "recall", "mode": "serial", "imports": [], "exports": ["candidates"]},
+                        {"name": "rerank", "mode": "serial", "imports": ["candidates"], "exports": ["result"]}
+                    ]
+                }}
                 """);
         var registry = new SceneFlowRegistry(
                 List.of(new RecallOperator(), new CoarseRankOperator(), new RerankOperator()),
@@ -205,10 +211,16 @@ class FeedControllerTest {
 
         // 修改外部文件 → reload → 新场景生效，旧场景消失
         java.nio.file.Files.writeString(file, """
-                {"home": {"graph": [
-                    {"name": "recall", "dependsOn": []},
-                    {"name": "rerank", "dependsOn": ["recall"]}
-                ]}}
+                {"home": {
+                    "dag": [
+                        {"name": "recall", "dependsOn": []},
+                        {"name": "rerank", "dependsOn": ["recall"]}
+                    ],
+                    "pipeline": [
+                        {"name": "recall", "mode": "serial", "imports": [], "exports": ["candidates"]},
+                        {"name": "rerank", "mode": "serial", "imports": ["candidates"], "exports": ["result"]}
+                    ]
+                }}
                 """);
         registry.reload();
 
@@ -220,23 +232,34 @@ class FeedControllerTest {
     void badConfigShouldKeepOldFlows(@org.junit.jupiter.api.io.TempDir java.nio.file.Path tmp) throws Exception {
         var file = tmp.resolve("flows.json");
         java.nio.file.Files.writeString(file, """
-                {"related": {"graph": [
-                    {"name": "recall", "dependsOn": []},
-                    {"name": "rerank", "dependsOn": ["recall"]}
-                ]}}
+                {"related": {
+                    "dag": [
+                        {"name": "recall", "dependsOn": []},
+                        {"name": "rerank", "dependsOn": ["recall"]}
+                    ],
+                    "pipeline": [
+                        {"name": "recall", "mode": "serial", "imports": [], "exports": ["candidates"]},
+                        {"name": "rerank", "mode": "serial", "imports": ["candidates"], "exports": ["result"]}
+                    ]
+                }}
                 """);
         var registry = new SceneFlowRegistry(
-                List.of(new RecallOperator(), new CoarseRankOperator(), new RerankOperator()),
+                List.of(new RecallOperator(), new RerankOperator()),
                 Executors.newFixedThreadPool(4),
                 new org.springframework.core.io.DefaultResourceLoader(),
                 "file:" + file);
 
-        // 写入带环的坏配置
+        // 写入带环的坏配置（dag 与 pipeline 都要能通过各自校验前的环检测）
         java.nio.file.Files.writeString(file, """
-                {"broken": {"graph": [
-                    {"name": "a", "dependsOn": ["b"]},
-                    {"name": "b", "dependsOn": ["a"]}
-                ]}}
+                {"broken": {
+                    "dag": [
+                        {"name": "a", "dependsOn": ["b"]},
+                        {"name": "b", "dependsOn": ["a"]}
+                    ],
+                    "pipeline": [
+                        {"name": "a", "mode": "serial", "imports": [], "exports": ["x"]}
+                    ]
+                }}
                 """);
         assertThrows(IllegalStateException.class, registry::reload);
 

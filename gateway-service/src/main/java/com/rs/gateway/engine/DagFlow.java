@@ -40,8 +40,11 @@ public class DagFlow {
      * JSON 形如 [{"name":"recall","dependsOn":[]},{"name":"rank","dependsOn":["coarseRank"]}]
      */
     public static DagFlow load(String json, Map<String, Operator> registry) throws Exception {
+        return load(new ObjectMapper().readTree(json), registry);
+    }
+
+    public static DagFlow load(JsonNode arr, Map<String, Operator> registry) {
         DagFlow flow = new DagFlow();
-        JsonNode arr = new ObjectMapper().readTree(json);
         if (!arr.isArray() || arr.isEmpty()) throw new IllegalArgumentException("DAG 定义为空");
         for (JsonNode n : arr) {
             String name = n.path("name").asText("");
