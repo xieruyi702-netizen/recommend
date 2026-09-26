@@ -72,7 +72,12 @@ class FeedControllerTest {
         RerankOperator rerank = new RerankOperator();
         inject(rerank, "rerankService", rerankService);
 
-        Pipeline pipeline = new Pipeline(List.of(recall, profile, favFilter, coarse, rank, boost, metrics, rerank));
+        var pool = Executors.newFixedThreadPool(4);
+        Pipeline pipeline = new Pipeline(List.of(
+                new com.rs.gateway.engine.ParallelGroup("recall+profile", pool, recall, profile),
+                favFilter, coarse, rank,
+                new com.rs.gateway.engine.ParallelGroup("boost+metrics", pool, boost, metrics),
+                rerank));
         DagFlow dag = new DagFlow()
                 .node("recall", recall)
                 .node("profile", profile)
