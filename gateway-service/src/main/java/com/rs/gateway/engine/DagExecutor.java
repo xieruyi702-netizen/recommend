@@ -69,8 +69,14 @@ public class DagExecutor {
                 for (var e : running.entrySet()) {
                     long costMs = (System.nanoTime() - e.getValue().submitNanos()) / 1_000_000;
                     long timeout = flow.nodes().get(e.getKey()).timeoutMs();
-                    if (e.getValue().future().isDone() || costMs >= timeout) {
-                        if (!e.getValue().future().isDone()) e.getValue().future().cancel(true);
+                    if (e.getValue().future().isDone()) {
+                        // 完成：成败由 get() 的结果决定
+                        finished = e.getKey();
+                        break;
+                    }
+                    if (costMs >= timeout) {
+                        // 超时：取消并按失败处理
+                        e.getValue().future().cancel(true);
                         finished = e.getKey();
                         failed = true;
                         break;
